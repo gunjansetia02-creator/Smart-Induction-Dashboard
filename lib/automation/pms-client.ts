@@ -71,7 +71,10 @@ export async function fetchAllEmployees(): Promise<PMSEmployee[]> {
   const data = await res.json()
   if (data.statuscode !== 200) throw new Error(`PMS employee error: ${data.message}`)
 
-  return (data.content ?? []) as PMSEmployee[]
+  // PMS returns content as a JSON string, not a parsed array
+  const raw = data.content ?? '[]'
+  const employees: PMSEmployee[] = typeof raw === 'string' ? JSON.parse(raw) : raw
+  return employees
 }
 
 // Parse DOJ from Indian format DD/MM/YYYY, DD-MM-YYYY, or ISO YYYY-MM-DD
