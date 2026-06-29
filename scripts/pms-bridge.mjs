@@ -73,27 +73,33 @@ async function fetchTodaysJoiners() {
 
 // ── Webhook trigger ───────────────────────────────────────────────────────────
 
-async function triggerOnboarding(joiner) {
-  const name  = joiner['Name']         ?? 'New Joiner'
-  const email = joiner['Office Email'] ?? joiner['Personal Email'] ?? null
-  const dept  = joiner['Department']   ?? undefined
+async function triggerOnboarding(pmsJoiners) {
+  const joiners = pmsJoiners
+    .map(j => ({
+      name:       j['Name']         ?? 'New Joiner',
+      email:      j['Office Email'] ?? j['Personal Email'] ?? null,
+      department: j['Department']   ?? undefined,
+    }))
+    .filter(j => {
+      if (!j.email) { console.log(`⚠  Skipped ${j.name} — no email in PMS`); return false }
+      return true
+    })
 
-  if (!email) {
-    console.log(`⚠  Skipped ${name} — no email in PMS`)
-    return
-  }
+  if (joiners.length === 0) return
 
+  // Send ALL joiners in one request — one shared meeting for the batch
   const res = await fetch(WEBHOOK_URL, {
     method:  'POST',
     headers: {
       'Content-Type':  'application/json',
       'Authorization': `Bearer ${WEBHOOK_SECRET}`,
     },
-    body: JSON.stringify({ name, email, department: dept }),
+    body: JSON.stringify({ joiners }),
   })
 
   const result = await res.json()
-  console.log(`✓  ${name} <${email}>`, result)
+  console.log(`✓  ${joiners.length} joiner(s) processed — 1 shared meeting`)
+  console.log('   ', JSON.stringify(result, null, 2))
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -108,10 +114,8 @@ async function run() {
     return
   }
 
-  console.log(`  Found ${joiners.length} new joiner(s):`)
-  for (const j of joiners) {
-    await triggerOnboarding(j)
-  }
+  console.log(`  Found ${joiners.length} new joiner(s) — sending as one batch...`)
+  await triggerOnboarding(joiners)
 }
 
 const watch = process.argv.includes('--watch')
