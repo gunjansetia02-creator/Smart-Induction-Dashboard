@@ -1,6 +1,6 @@
-import { Pill } from '@/components/ui/Pill'
+import { Pill }        from '@/components/ui/Pill'
 import { ProgressRing } from '@/components/ui/ProgressRing'
-import { joiners } from '@/lib/mock-data'
+import { getRecentJoiners } from '@/lib/data/get-joiners'
 import type { JoinerStatus } from '@/lib/types'
 
 function ringColor(s: JoinerStatus) {
@@ -19,13 +19,20 @@ function statusPill(s: JoinerStatus) {
   return <Pill variant="red">Not Started</Pill>
 }
 
-export function Profiles() {
+export async function Profiles() {
+  const joiners = await getRecentJoiners(60)
+
+  const now = new Date()
+  const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <div className="text-[14px] font-bold text-navy">New Joiner Profiles — June 2025</div>
-          <div className="text-[12px] text-muted mt-0.5">Progress updates every 60 seconds · Last sync 2 min ago</div>
+          <div className="text-[14px] font-bold text-navy">New Joiner Profiles — {monthLabel}</div>
+          <div className="text-[12px] text-muted mt-0.5">
+            {joiners.length} joiner{joiners.length !== 1 ? 's' : ''} · Live data from PMS
+          </div>
         </div>
         <div className="flex gap-2">
           <button className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">
@@ -37,24 +44,28 @@ export function Profiles() {
         </div>
       </div>
 
-      <div className="grid gap-[14px]" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))' }}>
-        {joiners.map((j) => (
-          <div
-            key={j.id}
-            className="bg-white border border-bdr rounded-[5px] p-5 flex flex-col items-center text-center cursor-pointer hover:shadow-md hover:-translate-y-[2px] transition-all"
-          >
-            <div className="mb-3">
-              <ProgressRing value={j.progress} color={ringColor(j.status)} size={70} />
+      {joiners.length === 0 ? (
+        <div className="text-center py-16 text-muted text-[13px]">No joiners in the last 60 days.</div>
+      ) : (
+        <div className="grid gap-[14px]" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))' }}>
+          {joiners.map((j) => (
+            <div
+              key={j.id}
+              className="bg-white border border-bdr rounded-[5px] p-5 flex flex-col items-center text-center cursor-pointer hover:shadow-md hover:-translate-y-[2px] transition-all"
+            >
+              <div className="mb-3">
+                <ProgressRing value={j.progress} color={ringColor(j.status)} size={70} />
+              </div>
+              <div className="text-[13px] font-bold text-navy mb-0.5">{j.name}</div>
+              <div className="text-[11.5px] text-muted mb-2.5">{j.dept}</div>
+              {statusPill(j.status)}
+              <div className="text-[11px] text-faint mt-2">
+                {j.joinedDate} · {j.videosWatched}/{j.totalVideos} videos
+              </div>
             </div>
-            <div className="text-[13px] font-bold text-navy mb-0.5">{j.name}</div>
-            <div className="text-[11.5px] text-muted mb-2.5">{j.dept}</div>
-            {statusPill(j.status)}
-            <div className="text-[11px] text-faint mt-2">
-              {j.joinedDate} · {j.videosWatched}/{j.totalVideos} videos
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

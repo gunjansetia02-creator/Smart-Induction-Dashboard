@@ -1,34 +1,47 @@
-import { KpiCard } from '@/components/ui/KpiCard'
-import { Card } from '@/components/ui/Card'
-import { Pill } from '@/components/ui/Pill'
+import { KpiCard }    from '@/components/ui/KpiCard'
+import { Card }       from '@/components/ui/Card'
+import { Pill }       from '@/components/ui/Pill'
 import { ProgressRow } from '@/components/ui/ProgressBar'
 import { TrendChart } from './TrendChart'
-import { feedItems, thisWeekJoiners } from '@/lib/mock-data'
+import { feedItems }  from '@/lib/mock-data'
+import { getRecentJoiners, getThisWeekJoiners } from '@/lib/data/get-joiners'
 import type { JoinerStatus } from '@/lib/types'
 
 const dotColor: Record<string, string> = {
-  green: 'bg-kgreen',
-  blue:  'bg-sky',
-  amber: 'bg-kamber',
+  green: 'bg-kgreen', blue: 'bg-sky', amber: 'bg-kamber',
 }
 
 function statusPill(s: JoinerStatus) {
-  if (s === 'complete')     return <Pill variant="green">Complete</Pill>
-  if (s === 'in-progress')  return <Pill variant="blue">In Progress</Pill>
-  if (s === 'needs-nudge')  return <Pill variant="amber">Needs Nudge</Pill>
-  if (s === 'behind')       return <Pill variant="amber">Behind</Pill>
+  if (s === 'complete')    return <Pill variant="green">Complete</Pill>
+  if (s === 'in-progress') return <Pill variant="blue">In Progress</Pill>
+  if (s === 'needs-nudge') return <Pill variant="amber">Needs Nudge</Pill>
+  if (s === 'behind')      return <Pill variant="amber">Behind</Pill>
   return <Pill variant="red">Not Started</Pill>
 }
 
-export function Overview() {
+export async function Overview() {
+  const [allJoiners, weekJoiners] = await Promise.all([
+    getRecentJoiners(30),
+    getThisWeekJoiners(),
+  ])
+
+  const thisMonth  = allJoiners.length
+  const complete   = allJoiners.filter(j => j.status === 'complete').length
+  const pending    = allJoiners.filter(j => j.status !== 'complete').length
+  const needsAction = allJoiners.filter(j => j.status === 'not-started' || j.emailStatus === 'bounced').length
+  const completionPct = thisMonth > 0 ? Math.round((complete / thisMonth) * 100) : 0
+
+  const now = new Date()
+  const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+
   return (
     <div>
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-[14px] mb-5">
-        <KpiCard color="blue"  label="Joiners This Month" value={14} sub={<><span className="text-kgreen font-bold mr-1">↑ 3</span>vs last month</>} />
-        <KpiCard color="green" label="Inductions Complete" value={9}  sub="64% completion rate" />
-        <KpiCard color="amber" label="Pending"             value={5}  sub="3 in progress · 2 not started" />
-        <KpiCard color="red"   label="My Actions"          value={2}  sub="Session prep · 1 email bounce" />
+        <KpiCard color="blue"  label={`Joiners — ${monthLabel}`} value={thisMonth}     sub="From PMS · live data" />
+        <KpiCard color="green" label="Inductions Complete"        value={complete}      sub={`${completionPct}% completion rate`} />
+        <KpiCard color="amber" label="Pending"                    value={pending}       sub={`${allJoiners.filter(j=>j.status==='in-progress').length} in progress · ${allJoiners.filter(j=>j.status==='not-started').length} not started`} />
+        <KpiCard color="red"   label="Needs Attention"            value={needsAction}   sub="Not started or email bounced" />
       </div>
 
       {/* Chart + Feed */}
@@ -51,38 +64,38 @@ export function Overview() {
       </div>
 
       {/* This week table */}
-      <Card title="This Week · 5 Active Joiners" noPad>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                {['Name','Dept','Joined','Videos','Progress','Status'].map(h => (
-                  <th key={h} className="px-[13px] py-[9px] text-left text-[10.5px] font-bold tracking-[0.6px] uppercase text-faint bg-ground border-b border-bdr whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {thisWeekJoiners.map((j) => (
-                <tr key={j.id} className="hover:bg-[#F7FAFD]">
-                  <td className="px-[13px] py-[11px] text-[13px] border-b border-ground last:border-0">
-                    <strong>{j.name}</strong>
-                  </td>
-                  <td className="px-[13px] py-[11px] text-[13px] border-b border-ground">{j.dept}</td>
-                  <td className="px-[13px] py-[11px] text-[13px] border-b border-ground">{j.joinedDate}</td>
-                  <td className="px-[13px] py-[11px] text-[13px] border-b border-ground tabular">{j.videosWatched} / {j.totalVideos}</td>
-                  <td className="px-[13px] py-[11px] text-[13px] border-b border-ground min-w-[140px]">
-                    <ProgressRow value={j.progress} />
-                  </td>
-                  <td className="px-[13px] py-[11px] text-[13px] border-b border-ground">
-                    {statusPill(j.status)}
-                  </td>
+      <Card title={`This Week · ${weekJoiners.length} Active Joiner${weekJoiners.length !== 1 ? 's' : ''}`} noPad>
+        {weekJoiners.length === 0 ? (
+          <p className="px-[13px] py-5 text-[13px] text-muted">No new joiners this week yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  {['Name','Dept','Joined','Videos','Progress','Status'].map(h => (
+                    <th key={h} className="px-[13px] py-[9px] text-left text-[10.5px] font-bold tracking-[0.6px] uppercase text-faint bg-ground border-b border-bdr whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {weekJoiners.map((j) => (
+                  <tr key={j.id} className="hover:bg-[#F7FAFD]">
+                    <td className="px-[13px] py-[11px] text-[13px] border-b border-ground"><strong>{j.name}</strong></td>
+                    <td className="px-[13px] py-[11px] text-[13px] border-b border-ground">{j.dept}</td>
+                    <td className="px-[13px] py-[11px] text-[13px] border-b border-ground">{j.joinedDate}</td>
+                    <td className="px-[13px] py-[11px] text-[13px] border-b border-ground tabular">{j.videosWatched} / {j.totalVideos}</td>
+                    <td className="px-[13px] py-[11px] text-[13px] border-b border-ground min-w-[140px]">
+                      <ProgressRow value={j.progress} />
+                    </td>
+                    <td className="px-[13px] py-[11px] text-[13px] border-b border-ground">{statusPill(j.status)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   )
