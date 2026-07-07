@@ -34,6 +34,10 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [escalated, setEscalated] = useState<EscalatedQuestion[] | null>(null)
+  const [urlMode, setUrlMode] = useState<'link' | 'upload'>('link')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploadedFilename, setUploadedFilename] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/materials/questions')
@@ -44,6 +48,9 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
 
   function openAdd() {
     setForm(EMPTY_FORM)
+    setUrlMode('link')
+    setUploadError(null)
+    setUploadedFilename(null)
     setModalOpen(true)
   }
 
@@ -57,7 +64,30 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
       duration: m.duration ?? '',
       day: m.day === null ? '' : String(m.day),
     })
+    setUrlMode('link')
+    setUploadError(null)
+    setUploadedFilename(null)
     setModalOpen(true)
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setUploadError(null)
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch('/api/materials/upload', { method: 'POST', body })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Upload failed')
+      setForm(f => ({ ...f, url: data.url }))
+      setUploadedFilename(data.filename ?? file.name)
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setUploading(false)
+    }
   }
 
   async function handleDelete(id: string) {
@@ -212,11 +242,42 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
                     className="border border-bdr rounded px-2.5 py-1.5 text-[13px]" placeholder="e.g. 18 min or 12 pages" />
                 </label>
               </div>
-              <label className="text-[12px] text-muted flex flex-col gap-1">
-                {form.type === 'pdf' ? 'Document URL' : 'Video URL'} * <span className="text-faint">(a direct link the browser can open{form.type === 'video' ? ' — an .mp4 link plays inline with watch-time tracking' : ''})</span>
-                <input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
-                  className="border border-bdr rounded px-2.5 py-1.5 text-[13px]" placeholder="https://…" />
-              </label>
+              <div className="text-[12px] text-muted flex flex-col gap-1">
+                {form.type === 'pdf' ? 'Document' : 'Video'} *
+                <div className="flex gap-1.5 mb-1">
+                  <button type="button" onClick={() => setUrlMode('link')}
+                    className={`px-[9px] py-[4px] text-[11.5px] font-semibold rounded cursor-pointer border ${urlMode === 'link' ? 'bg-sky text-white border-sky' : 'bg-white text-navy border-bdr hover:opacity-85'}`}>
+                    🔗 Paste Link
+                  </button>
+                  <button type="button" onClick={() => setUrlMode('upload')}
+                    className={`px-[9px] py-[4px] text-[11.5px] font-semibold rounded cursor-pointer border ${urlMode === 'upload' ? 'bg-sky text-white border-sky' : 'bg-white text-navy border-bdr hover:opacity-85'}`}>
+                    📤 Upload File
+                  </button>
+                </div>
+
+                {urlMode === 'link' ? (
+                  <>
+                    <input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
+                      className="border border-bdr rounded px-2.5 py-1.5 text-[13px]" placeholder="https://…" />
+                    <span className="text-faint text-[11px]">A direct link the browser can open{form.type === 'video' ? ' — an .mp4 link plays inline with watch-time tracking' : ''}.</span>
+                  </>
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept={form.type === 'pdf' ? '.pdf,.doc,.docx' : 'video/*'}
+                      onChange={handleFileChange}
+                      className="text-[12.5px]"
+                    />
+                    <div className="text-faint text-[11px] mt-1">Max 4MB. For bigger files, host elsewhere and paste a link instead.</div>
+                    {uploading && <div className="text-sky text-[11.5px] mt-1">Uploading…</div>}
+                    {uploadError && <div className="text-red-600 text-[11.5px] mt-1">{uploadError}</div>}
+                    {!uploading && !uploadError && uploadedFilename && (
+                      <div className="text-kgreen text-[11.5px] mt-1">✓ Uploaded: {uploadedFilename}</div>
+                    )}
+                  </div>
+                )}
+              </div>
               <label className="text-[12px] text-muted flex flex-col gap-1">
                 Day <span className="text-faint">(optional — leave blank if it doesn't need a specific day)</span>
                 <input type="number" min={1} value={form.day} onChange={e => setForm(f => ({ ...f, day: e.target.value }))}
@@ -225,7 +286,7 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
             </div>
             <div className="p-4 border-t border-ground flex justify-end gap-2">
               <button onClick={() => setModalOpen(false)} className="px-[12px] py-[7px] text-[12px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">Cancel</button>
-              <button onClick={handleSave} disabled={saving || !form.title.trim() || !form.url.trim()}
+              <button onClick={handleSave} disabled={saving || uploading || !form.title.trim() || !form.url.trim()}
                 className="px-[12px] py-[7px] text-[12px] font-semibold bg-sky text-white rounded cursor-pointer hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed">
                 {saving ? 'Saving…' : form.id ? 'Save Changes' : 'Add Material'}
               </button>
