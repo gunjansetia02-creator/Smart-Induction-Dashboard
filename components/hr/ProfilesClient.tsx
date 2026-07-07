@@ -5,6 +5,7 @@ import { Pill }        from '@/components/ui/Pill'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import { PmsSyncStatus } from './PmsSyncStatus'
 import { DateRangeFilter, type DateRange } from './DateRangeFilter'
+import { WelcomeKitButton } from './WelcomeKitButton'
 import type { Joiner, JoinerStatus } from '@/lib/types'
 
 function ringColor(s: JoinerStatus) {
@@ -27,10 +28,12 @@ export function ProfilesClient({
   joiners,
   live,
   error,
+  hrEmail,
 }: {
   joiners: Joiner[]
   live: boolean
   error?: string
+  hrEmail: string
 }) {
   const [range, setRange] = useState<DateRange>(null)
   const [rangeLabel, setRangeLabel] = useState('All Time')
@@ -56,6 +59,7 @@ export function ProfilesClient({
         </div>
         <div className="flex gap-2">
           <DateRangeFilter onChange={(r, label) => { setRange(r); setRangeLabel(label) }} />
+          <WelcomeKitButton joiners={filtered} live={live} hrEmail={hrEmail} />
           <button className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">
             Export CSV
           </button>
