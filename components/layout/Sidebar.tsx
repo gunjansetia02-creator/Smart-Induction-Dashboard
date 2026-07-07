@@ -4,6 +4,7 @@ const hrNav = [
   { label: 'Overview',      href: '/hr',                  badge: '' },
   { label: 'Scheduler',     href: '/hr?tab=scheduler',    badge: '' },
   { label: 'New Joiners',   href: '/hr?tab=profiles',     badge: '5' },
+  { label: 'Materials',     href: '/hr?tab=materials',    badge: '' },
   { label: 'Doubt Session', href: '/hr?tab=doubt',        badge: '4' },
 ]
 

@@ -1,4 +1,4 @@
-import type { Joiner, Doubt, Material, FeedItem } from './types'
+import type { Joiner, Doubt, FeedItem } from './types'
 
 export const joiners: Joiner[] = [
   { id: '1', name: 'Rahul Mehta',  initials: 'RM', designation: 'Software Engineer',     dept: 'IT Department', doj: '2026-06-16', joinedDate: '16 Jun', videosWatched: 4, totalVideos: 4, progress: 100, status: 'complete',     inviteStatus: 'accepted',    emailStatus: 'delivered', email: 'rahul.m@koenig.com',  avatarColor: '#27B882' },
@@ -18,15 +18,6 @@ export const doubts: Doubt[] = [
   { id: '2', question: 'How are leave balances calculated for mid-year joiners?',          askedBy: 'Sneha Patel',  dept: 'Finance',  videoSource: 'Video 2: HR Policies & Leave',            timestamp: '08:41', flaggedDate: 'Tue 24 Jun', answered: false },
   { id: '3', question: 'Is the VPN mandatory for all remote work or only specific roles?', askedBy: 'Dev Sharma',   dept: 'IT',       videoSource: 'Video 4: IT Systems & VPN Setup',         timestamp: '22:10', flaggedDate: 'Wed 25 Jun', answered: false },
   { id: '4', question: 'Who approves travel reimbursements for the sales team?',           askedBy: 'Kavya Nair',   dept: 'Marketing',videoSource: 'Video 3: Client Relations & Escalations', timestamp: '31:05', flaggedDate: 'Wed 25 Jun', answered: false },
-]
-
-export const materials: Material[] = [
-  { id: '1', title: 'Welcome & Company Overview',     type: 'video', duration: '18 min',   progress: 100, status: 'complete' },
-  { id: '2', title: 'HR Policies & Leave Management', type: 'video', duration: '24 min',   progress: 100, status: 'complete' },
-  { id: '3', title: 'Client Relations & Escalations', type: 'video', duration: '32 min',   progress: 65,  status: 'in-progress', resumeAt: '20:45' },
-  { id: '4', title: 'IT Systems & VPN Setup',         type: 'video', duration: '20 min',   progress: 0,   status: 'not-started' },
-  { id: '5', title: 'Employee Handbook',              type: 'pdf',   duration: '45 pages', progress: 100, status: 'complete' },
-  { id: '6', title: 'Sales Playbook Q2 2025',         type: 'pdf',   duration: '28 pages', progress: 0,   status: 'not-started' },
 ]
 
 export const feedItems: FeedItem[] = [

@@ -4,6 +4,7 @@ const hrTitles: Record<string, string> = {
   '':          'Induction Overview',
   scheduler:   'Induction Scheduler',
   profiles:    'New Joiner Profiles',
+  materials:   'Induction Materials',
   doubt:       'Friday Doubt Session',
 }
 

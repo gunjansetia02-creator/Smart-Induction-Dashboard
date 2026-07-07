@@ -2,15 +2,17 @@ import { Shell } from '@/components/layout/Shell'
 import { Overview } from '@/components/hr/Overview'
 import { Scheduler } from '@/components/hr/Scheduler'
 import { Profiles } from '@/components/hr/Profiles'
+import { MaterialsAdmin } from '@/components/hr/MaterialsAdmin'
 import { DoubtSession } from '@/components/hr/DoubtSession'
 
-const TABS = ['overview', 'scheduler', 'profiles', 'doubt'] as const
+const TABS = ['overview', 'scheduler', 'profiles', 'materials', 'doubt'] as const
 type Tab = typeof TABS[number]
 
 const TAB_LABELS: Record<Tab, string> = {
   overview:  'Overview',
   scheduler: 'Scheduler',
   profiles:  'New Joiners',
+  materials: 'Materials',
   doubt:     'Doubt Session',
 }
 
@@ -45,6 +47,7 @@ export default async function HRPage({
       {tab === 'overview'  && <Overview />}
       {tab === 'scheduler' && <Scheduler />}
       {tab === 'profiles'  && <Profiles />}
+      {tab === 'materials' && <MaterialsAdmin />}
       {tab === 'doubt'     && <DoubtSession />}
     </Shell>
   )

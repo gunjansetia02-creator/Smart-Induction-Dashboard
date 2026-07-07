@@ -1,94 +1,78 @@
-import { Card } from '@/components/ui/Card'
-import { Pill } from '@/components/ui/Pill'
-import { ProgressBar } from '@/components/ui/ProgressBar'
-import { materials } from '@/lib/mock-data'
-import type { Material } from '@/lib/types'
+import { supabase } from '@/lib/supabase'
+import { MaterialsListClient, type EmployeeMaterial } from './MaterialsListClient'
 
-function statusPill(m: Material) {
-  if (m.status === 'complete')     return <Pill variant="green">{m.type === 'pdf' ? 'Read' : 'Watched'}</Pill>
-  if (m.status === 'in-progress')  return <Pill variant="blue">{m.progress}% watched</Pill>
-  return <Pill variant="grey">Not started</Pill>
-}
+// No real login system yet — this demo view represents Arjun Kapoor, matching the
+// mock joiner data used elsewhere in the HR Admin views.
+export const DEMO_EMPLOYEE_EMAIL = 'arjun.k@koenig.com'
+export const DEMO_EMPLOYEE_NAME = 'Arjun Kapoor'
 
-function iconBg(m: Material) {
-  if (m.status === 'complete')    return 'bg-kgreen-dim text-kgreen'
-  if (m.status === 'in-progress') return 'bg-sky text-white'
-  if (m.type === 'pdf')           return 'bg-kamber-dim text-kamber'
-  return 'bg-sky-dim text-sky'
-}
+export async function Materials() {
+  const { data: materials, error } = await supabase
+    .from('materials')
+    .select('*')
+    .order('day', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
 
-export function Materials() {
+  if (error) {
+    return <div className="text-center py-16 text-red-600 text-[13px]">Failed to load materials: {error.message}</div>
+  }
+
+  if (materials.length === 0) {
+    return (
+      <div className="text-center py-16 text-muted text-[13px]">
+        No induction materials have been added yet — check back soon, or ask HR.
+      </div>
+    )
+  }
+
+  const materialIds = materials.map(m => m.id)
+  const [{ data: progress }, { data: questions }] = await Promise.all([
+    supabase.from('material_progress').select('*').eq('employee_email', DEMO_EMPLOYEE_EMAIL).in('material_id', materialIds),
+    supabase.from('material_questions').select('*').eq('employee_email', DEMO_EMPLOYEE_EMAIL).in('material_id', materialIds).order('created_at', { ascending: true }),
+  ])
+
+  const progressByMaterial = new Map((progress ?? []).map(p => [p.material_id, p]))
+  const questionsByMaterial = new Map<string, typeof questions>()
+  for (const q of questions ?? []) {
+    questionsByMaterial.set(q.material_id, [...(questionsByMaterial.get(q.material_id) ?? []), q])
+  }
+
+  const enriched: EmployeeMaterial[] = materials.map(m => ({
+    id: m.id,
+    title: m.title,
+    description: m.description,
+    type: m.type,
+    url: m.url,
+    duration: m.duration,
+    day: m.day,
+    status: progressByMaterial.get(m.id)?.status ?? 'not-started',
+    watchedPercent: progressByMaterial.get(m.id)?.watched_percent ?? 0,
+    questions: (questionsByMaterial.get(m.id) ?? []).map(q => ({
+      id: q.id,
+      question: q.question,
+      aiAnswer: q.ai_answer,
+      resolved: q.resolved,
+      escalated: q.escalated,
+    })),
+  }))
+
+  const complete = enriched.filter(m => m.status === 'complete').length
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="text-[14px] font-bold text-navy">My Materials</div>
-          <div className="text-[12px] text-muted mt-0.5">4 videos · 2 documents · 60% complete</div>
+          <div className="text-[12px] text-muted mt-0.5">
+            {enriched.length} material{enriched.length !== 1 ? 's' : ''} · {complete}/{enriched.length} complete
+          </div>
         </div>
       </div>
-
-      <Card noPad>
-        <div className="px-[17px]">
-          {materials.map((m) => {
-            const isActive = m.status === 'in-progress'
-            return (
-              <div
-                key={m.id}
-                className={`flex items-center gap-[13px] py-[13px] border-b border-ground last:border-0 ${isActive ? 'bg-[#F7FAFD] -mx-[17px] px-[17px]' : ''}`}
-              >
-                {/* Icon */}
-                <div className={`w-[38px] h-[38px] rounded-[4px] flex items-center justify-center text-[16px] flex-shrink-0 ${iconBg(m)}`}>
-                  {m.type === 'pdf' ? '📄' : '▶'}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-semibold text-navy truncate">{m.title}</div>
-                  <div className="flex items-center gap-[9px] text-[11.5px] text-muted mt-0.5 flex-wrap">
-                    <span>{m.type === 'pdf' ? 'PDF' : 'Video'} · {m.duration}</span>
-                    {statusPill(m)}
-                    {isActive && m.resumeAt && (
-                      <span className="text-sky">Resume at {m.resumeAt}</span>
-                    )}
-                  </div>
-                  <div className="mt-1.5">
-                    <ProgressBar value={m.progress} color={m.status === 'complete' ? 'green' : 'sky'} />
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-1.5 flex-shrink-0">
-                  {m.status === 'complete' && (
-                    <button className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">
-                      {m.type === 'pdf' ? 'Open' : 'Rewatch'}
-                    </button>
-                  )}
-                  {m.status === 'in-progress' && (
-                    <>
-                      <button className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-sky text-white rounded cursor-pointer hover:opacity-85">
-                        Continue
-                      </button>
-                      <button className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-kred-dim text-red-700 rounded cursor-pointer hover:opacity-85">
-                        Flag Doubt
-                      </button>
-                    </>
-                  )}
-                  {m.status === 'not-started' && (
-                    <>
-                      <button className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-sky text-white rounded cursor-pointer hover:opacity-85">
-                        {m.type === 'pdf' ? 'Open' : 'Watch'}
-                      </button>
-                      <button className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">
-                        Flag Doubt
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </Card>
+      <MaterialsListClient
+        materials={enriched}
+        employeeEmail={DEMO_EMPLOYEE_EMAIL}
+        employeeName={DEMO_EMPLOYEE_NAME}
+      />
     </div>
   )
 }
