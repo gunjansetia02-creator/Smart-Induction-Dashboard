@@ -1,15 +1,28 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const url = process.env.SUPABASE_URL
-const key = process.env.SUPABASE_ANON_KEY
+let client: SupabaseClient | null = null
 
-if (!url || !key) {
-  throw new Error('Supabase not configured: set SUPABASE_URL and SUPABASE_ANON_KEY in your environment.')
+// Lazy on purpose: Next.js evaluates route modules at build time to collect
+// page data, so throwing here at import time (rather than on first real use)
+// would break the production build whenever these env vars aren't set yet.
+function getClient(): SupabaseClient {
+  if (client) return client
+  const url = process.env.SUPABASE_URL
+  const key = process.env.SUPABASE_ANON_KEY
+  if (!url || !key) {
+    throw new Error('Supabase not configured: set SUPABASE_URL and SUPABASE_ANON_KEY in your environment.')
+  }
+  client = createClient(url, key)
+  return client
 }
 
 // Server-only client. Never import this from a 'use client' component —
 // the key is read from process.env and must not reach the browser bundle.
-export const supabase = createClient(url, key)
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    return getClient()[prop as keyof SupabaseClient]
+  },
+})
 
 export interface MaterialRow {
   id: string
