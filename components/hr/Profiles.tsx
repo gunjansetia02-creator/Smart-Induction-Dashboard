@@ -1,6 +1,7 @@
 import { Pill }        from '@/components/ui/Pill'
 import { ProgressRing } from '@/components/ui/ProgressRing'
-import { getRecentJoiners } from '@/lib/data/get-joiners'
+import { getRecentJoinersWithStatus } from '@/lib/data/get-joiners'
+import { PmsSyncStatus } from './PmsSyncStatus'
 import type { JoinerStatus } from '@/lib/types'
 
 function ringColor(s: JoinerStatus) {
@@ -20,18 +21,20 @@ function statusPill(s: JoinerStatus) {
 }
 
 export async function Profiles() {
-  const joiners = await getRecentJoiners(60)
+  const { joiners, live, error } = await getRecentJoinersWithStatus(60)
 
   const now = new Date()
   const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
   return (
     <div>
+      <PmsSyncStatus live={live} error={error} />
+
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="text-[14px] font-bold text-navy">New Joiner Profiles — {monthLabel}</div>
           <div className="text-[12px] text-muted mt-0.5">
-            {joiners.length} joiner{joiners.length !== 1 ? 's' : ''} · Live data from PMS
+            {joiners.length} joiner{joiners.length !== 1 ? 's' : ''} · {live ? 'Live data from PMS' : 'Demo data (PMS unreachable)'}
           </div>
         </div>
         <div className="flex gap-2">
@@ -57,10 +60,10 @@ export async function Profiles() {
                 <ProgressRing value={j.progress} color={ringColor(j.status)} size={70} />
               </div>
               <div className="text-[13px] font-bold text-navy mb-0.5">{j.name}</div>
-              <div className="text-[11.5px] text-muted mb-2.5">{j.dept}</div>
+              <div className="text-[11.5px] text-muted mb-2.5">{j.designation}</div>
               {statusPill(j.status)}
-              <div className="text-[11px] text-faint mt-2">
-                {j.joinedDate} · {j.videosWatched}/{j.totalVideos} videos
+              <div className="text-[11px] text-faint mt-2" title={`Date of Joining: ${j.joinedDate}`}>
+                DOJ: {j.joinedDate} · {j.videosWatched}/{j.totalVideos} videos
               </div>
             </div>
           ))}

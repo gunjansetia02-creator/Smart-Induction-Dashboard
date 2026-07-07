@@ -8,6 +8,7 @@ export interface Joiner {
   id: string
   name: string
   initials: string
+  designation: string
   dept: string
   joinedDate: string
   videosWatched: number

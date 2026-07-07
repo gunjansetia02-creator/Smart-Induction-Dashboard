@@ -66,6 +66,7 @@ async function fetchMapped(withinDays: number): Promise<MappedJoiner[]> {
         id:            String(emp['Emp Code'] ?? i + 1),
         name,
         initials:      initials(name),
+        designation:   emp['Designation'] ?? 'Employee',
         dept:          emp['Department'] ?? emp['Designation'] ?? 'Koenig Solutions',
         joinedDate:    fmtDate(doj),
         videosWatched: Math.round((progress / 100) * 4),
@@ -85,8 +86,21 @@ async function fetchMapped(withinDays: number): Promise<MappedJoiner[]> {
 export async function getRecentJoiners(withinDays = 60): Promise<Joiner[]> {
   try {
     return await fetchMapped(withinDays)
-  } catch {
+  } catch (error) {
+    console.error('[PMS Error] Failed to fetch joiners:', error instanceof Error ? error.message : String(error))
     return mockJoiners
+  }
+}
+
+// Same as getRecentJoiners, but also reports whether the data is really live from PMS
+export async function getRecentJoinersWithStatus(withinDays = 60): Promise<{ joiners: Joiner[]; live: boolean; error?: string }> {
+  try {
+    const joiners = await fetchMapped(withinDays)
+    return { joiners, live: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('[PMS Error] Failed to fetch joiners:', message)
+    return { joiners: mockJoiners, live: false, error: message }
   }
 }
 

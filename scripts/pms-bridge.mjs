@@ -4,19 +4,28 @@
  * Polls PMS every 30 minutes for today's new joiners and POSTs to the
  * Vercel webhook, which then sends the welcome email + Teams invite.
  *
+ * Requires these environment variables to be set (e.g. via .env.local
+ * loaded through `node --env-file=.env.local scripts/pms-bridge.mjs`):
+ *   PMS_API_KEY, PMS_USERNAME, PMS_PASSWORD, PMS_ROLE, WEBHOOK_SECRET
+ *
  * Usage:
- *   node scripts/pms-bridge.mjs           # run once
- *   node scripts/pms-bridge.mjs --watch   # poll every 30 min
+ *   node --env-file=.env.local scripts/pms-bridge.mjs           # run once
+ *   node --env-file=.env.local scripts/pms-bridge.mjs --watch   # poll every 30 min
  */
 
 const PMS_BASE     = 'https://api.koenig-solutions.com'
-const PMS_API_KEY  = '18'
-const PMS_USERNAME = 'Gunjan_GetEmployeeProf'
-const PMS_PASSWORD = '4B#3uzvPvmJb'
-const PMS_ROLE     = 'Get Employee Profile Details'
+const PMS_API_KEY  = process.env.PMS_API_KEY
+const PMS_USERNAME = process.env.PMS_USERNAME
+const PMS_PASSWORD = process.env.PMS_PASSWORD
+const PMS_ROLE     = process.env.PMS_ROLE
 
-const WEBHOOK_URL    = 'https://induction-dashboard.vercel.app/api/webhook/new-joiner'
-const WEBHOOK_SECRET = 'ks-induction-wh-2026'
+const WEBHOOK_URL    = process.env.DASHBOARD_URL ? `${process.env.DASHBOARD_URL}/api/webhook/new-joiner` : 'https://induction-dashboard.vercel.app/api/webhook/new-joiner'
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
+
+if (!PMS_API_KEY || !PMS_USERNAME || !PMS_PASSWORD || !PMS_ROLE || !WEBHOOK_SECRET) {
+  console.error('Missing required env vars: PMS_API_KEY, PMS_USERNAME, PMS_PASSWORD, PMS_ROLE, WEBHOOK_SECRET')
+  process.exit(1)
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
