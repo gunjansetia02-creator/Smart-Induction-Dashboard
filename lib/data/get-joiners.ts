@@ -68,6 +68,7 @@ async function fetchMapped(withinDays: number): Promise<MappedJoiner[]> {
         initials:      initials(name),
         designation:   emp['Designation'] ?? 'Employee',
         dept:          emp['Department'] ?? emp['Designation'] ?? 'Koenig Solutions',
+        doj:           doj.toISOString().substring(0, 10),
         joinedDate:    fmtDate(doj),
         videosWatched: Math.round((progress / 100) * 4),
         totalVideos:   4,

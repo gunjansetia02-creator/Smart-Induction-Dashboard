@@ -10,6 +10,7 @@ export interface Joiner {
   initials: string
   designation: string
   dept: string
+  doj: string
   joinedDate: string
   videosWatched: number
   totalVideos: number

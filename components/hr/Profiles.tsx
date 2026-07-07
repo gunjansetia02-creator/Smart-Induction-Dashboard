@@ -1,74 +1,8 @@
-import { Pill }        from '@/components/ui/Pill'
-import { ProgressRing } from '@/components/ui/ProgressRing'
 import { getRecentJoinersWithStatus } from '@/lib/data/get-joiners'
-import { PmsSyncStatus } from './PmsSyncStatus'
-import type { JoinerStatus } from '@/lib/types'
-
-function ringColor(s: JoinerStatus) {
-  if (s === 'complete')    return '#27B882'
-  if (s === 'in-progress') return '#4A9BE8'
-  if (s === 'needs-nudge') return '#F4A622'
-  if (s === 'behind')      return '#F4A622'
-  return '#E85A4A'
-}
-
-function statusPill(s: JoinerStatus) {
-  if (s === 'complete')    return <Pill variant="green">Complete</Pill>
-  if (s === 'in-progress') return <Pill variant="blue">In Progress</Pill>
-  if (s === 'needs-nudge') return <Pill variant="amber">Needs Nudge</Pill>
-  if (s === 'behind')      return <Pill variant="amber">Behind</Pill>
-  return <Pill variant="red">Not Started</Pill>
-}
+import { ProfilesClient } from './ProfilesClient'
 
 export async function Profiles() {
-  const { joiners, live, error } = await getRecentJoinersWithStatus(60)
+  const { joiners, live, error } = await getRecentJoinersWithStatus(3650)
 
-  const now = new Date()
-  const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
-
-  return (
-    <div>
-      <PmsSyncStatus live={live} error={error} />
-
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <div className="text-[14px] font-bold text-navy">New Joiner Profiles — {monthLabel}</div>
-          <div className="text-[12px] text-muted mt-0.5">
-            {joiners.length} joiner{joiners.length !== 1 ? 's' : ''} · {live ? 'Live data from PMS' : 'Demo data (PMS unreachable)'}
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">
-            Export CSV
-          </button>
-          <button className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-sky text-white rounded cursor-pointer hover:opacity-85">
-            Add Joiner
-          </button>
-        </div>
-      </div>
-
-      {joiners.length === 0 ? (
-        <div className="text-center py-16 text-muted text-[13px]">No joiners in the last 60 days.</div>
-      ) : (
-        <div className="grid gap-[14px]" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))' }}>
-          {joiners.map((j) => (
-            <div
-              key={j.id}
-              className="bg-white border border-bdr rounded-[5px] p-5 flex flex-col items-center text-center cursor-pointer hover:shadow-md hover:-translate-y-[2px] transition-all"
-            >
-              <div className="mb-3">
-                <ProgressRing value={j.progress} color={ringColor(j.status)} size={70} />
-              </div>
-              <div className="text-[13px] font-bold text-navy mb-0.5">{j.name}</div>
-              <div className="text-[11.5px] text-muted mb-2.5">{j.designation}</div>
-              {statusPill(j.status)}
-              <div className="text-[11px] text-faint mt-2" title={`Date of Joining: ${j.joinedDate}`}>
-                DOJ: {j.joinedDate} · {j.videosWatched}/{j.totalVideos} videos
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
+  return <ProfilesClient joiners={joiners} live={live} error={error} />
 }
