@@ -1,8 +1,11 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Pill } from '@/components/ui/Pill'
 import { ProgressBar } from '@/components/ui/ProgressBar'
+import { ProgressRing } from '@/components/ui/ProgressRing'
+import { VideoPlayer } from './VideoPlayer'
+import { detectVideoSource } from '@/lib/video-embed'
 
 export interface EmployeeQuestion {
   id: string
@@ -22,8 +25,11 @@ export interface EmployeeMaterial {
   day: number | null
   status: 'not-started' | 'in-progress' | 'complete' | 'has-doubt'
   watchedPercent: number
+  lastPosition: number
   questions: EmployeeQuestion[]
 }
+
+type StatusFilter = 'all' | 'not-started' | 'in-progress' | 'complete' | 'has-doubt'
 
 function statusPill(m: EmployeeMaterial) {
   if (m.status === 'complete')    return <Pill variant="green">{m.type === 'pdf' ? 'Read' : 'Watched'}</Pill>
@@ -39,7 +45,7 @@ function iconBg(m: EmployeeMaterial) {
   return 'bg-sky-dim text-sky'
 }
 
-async function saveProgress(materialId: string, employeeEmail: string, employeeName: string, patch: { status?: string; watchedPercent?: number }) {
+async function saveProgress(materialId: string, employeeEmail: string, employeeName: string, patch: { status?: string; watchedPercent?: number; lastPositionSeconds?: number }) {
   await fetch(`/api/materials/${materialId}/progress`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -51,35 +57,24 @@ function MaterialRow({
   material,
   employeeEmail,
   employeeName,
+  isOpen,
+  onToggleOpen,
   onUpdate,
 }: {
   material: EmployeeMaterial
   employeeEmail: string
   employeeName: string
+  isOpen: boolean
+  onToggleOpen: () => void
   onUpdate: (patch: Partial<EmployeeMaterial>) => void
 }) {
-  const [expanded, setExpanded] = useState(false)
   const [askOpen, setAskOpen] = useState(false)
   const [questionText, setQuestionText] = useState('')
   const [asking, setAsking] = useState(false)
   const [videoError, setVideoError] = useState(false)
-  const lastSentRef = useRef(0)
+  const [faq, setFaq] = useState<{ id: string; question: string; ai_answer: string }[] | null>(null)
 
-  function handleTimeUpdate(e: React.SyntheticEvent<HTMLVideoElement>) {
-    const video = e.currentTarget
-    if (!video.duration) return
-    const percent = Math.round((video.currentTime / video.duration) * 100)
-    if (percent <= material.watchedPercent) return // never regress on scrub-back
-
-    const now = Date.now()
-    const status = percent >= 95 ? 'complete' : 'in-progress'
-    onUpdate({ watchedPercent: percent, status })
-
-    if (now - lastSentRef.current > 4000 || percent >= 95) {
-      lastSentRef.current = now
-      saveProgress(material.id, employeeEmail, employeeName, { watchedPercent: percent, status })
-    }
-  }
+  const videoSource = material.type === 'video' ? detectVideoSource(material.url) : null
 
   function markDone() {
     onUpdate({ status: 'complete', watchedPercent: 100 })
@@ -90,6 +85,23 @@ function MaterialRow({
     if (material.status === 'not-started') {
       onUpdate({ status: 'in-progress' })
       saveProgress(material.id, employeeEmail, employeeName, { status: 'in-progress' })
+    }
+  }
+
+  function handleVideoProgress(percent: number, positionSeconds: number) {
+    const status = percent >= 95 ? 'complete' : 'in-progress'
+    onUpdate({ watchedPercent: percent, lastPosition: positionSeconds, status })
+    saveProgress(material.id, employeeEmail, employeeName, { watchedPercent: percent, lastPositionSeconds: positionSeconds, status })
+  }
+
+  function toggleAsk() {
+    const next = !askOpen
+    setAskOpen(next)
+    if (next && faq === null) {
+      fetch(`/api/materials/${material.id}/faq`)
+        .then(r => r.json())
+        .then(d => setFaq(d.faq ?? []))
+        .catch(() => setFaq([]))
     }
   }
 
@@ -159,13 +171,13 @@ function MaterialRow({
 
         <div className="flex gap-1.5 flex-shrink-0">
           <button
-            onClick={() => { setExpanded(e => !e); startIfNeeded() }}
+            onClick={() => { onToggleOpen(); startIfNeeded() }}
             className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-sky text-white rounded cursor-pointer hover:opacity-85"
           >
-            {expanded ? 'Close' : material.status === 'complete' ? (material.type === 'pdf' ? 'Reopen' : 'Rewatch') : 'Open'}
+            {isOpen ? 'Close' : material.status === 'complete' ? (material.type === 'pdf' ? 'Reopen' : 'Rewatch') : material.watchedPercent > 0 ? 'Continue' : 'Open'}
           </button>
           <button
-            onClick={() => setAskOpen(a => !a)}
+            onClick={toggleAsk}
             className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85"
           >
             Ask a Question
@@ -173,19 +185,19 @@ function MaterialRow({
         </div>
       </div>
 
-      {expanded && (
+      {isOpen && (
         <div className="mt-3 ml-[51px] p-3 bg-ground rounded-[5px]">
           {material.type === 'video' ? (
-            videoError ? (
+            videoError || videoSource?.kind === 'unsupported' ? (
               <div className="text-[12px] text-muted mb-2">Couldn&apos;t load a preview for this link. You can still mark it done once you&apos;ve watched it.</div>
             ) : (
-              <video
-                src={material.url}
-                controls
-                className="w-full max-w-[480px] rounded-[4px] bg-black"
-                onTimeUpdate={handleTimeUpdate}
-                onError={() => setVideoError(true)}
-                onEnded={markDone}
+              <VideoPlayer
+                url={material.url}
+                initialPercent={material.watchedPercent}
+                initialPositionSeconds={material.lastPosition}
+                onProgress={handleVideoProgress}
+                onComplete={markDone}
+                onUnplayable={() => setVideoError(true)}
               />
             )
           ) : (
@@ -205,8 +217,23 @@ function MaterialRow({
 
       {askOpen && (
         <div className="mt-3 ml-[51px] p-3 bg-ground rounded-[5px] max-w-[480px]">
+          {faq && faq.length > 0 && (
+            <div className="mb-3">
+              <div className="text-[10.5px] font-bold tracking-[0.6px] uppercase text-faint mb-1.5">Common Questions</div>
+              <div className="flex flex-col gap-2">
+                {faq.map(f => (
+                  <div key={f.id} className="bg-white rounded-[4px] p-2.5 border border-bdr">
+                    <div className="text-[12px] text-navy font-medium">Q: {f.question}</div>
+                    <div className="text-[11.5px] text-muted mt-1">🤖 {f.ai_answer}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {material.questions.length > 0 && (
             <div className="flex flex-col gap-2.5 mb-3">
+              <div className="text-[10.5px] font-bold tracking-[0.6px] uppercase text-faint">Your Questions</div>
               {material.questions.map(q => (
                 <div key={q.id} className="bg-white rounded-[4px] p-2.5 border border-bdr">
                   <div className="text-[12.5px] text-navy font-medium">Q: {q.question}</div>
@@ -255,35 +282,105 @@ export function MaterialsListClient({
   employeeName: string
 }) {
   const [items, setItems] = useState(materials)
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
   function updateMaterial(id: string, patch: Partial<EmployeeMaterial>) {
     setItems(prev => prev.map(m => (m.id === id ? { ...m, ...patch } : m)))
   }
 
+  const total = items.length
+  const completeCount = items.filter(m => m.status === 'complete').length
+  const overallPercent = total > 0 ? Math.round((completeCount / total) * 100) : 0
+  const continueItem = useMemo(
+    () => items.find(m => m.status === 'in-progress' || m.status === 'has-doubt'),
+    [items]
+  )
+
+  const filtered = items.filter(m => {
+    if (statusFilter !== 'all' && m.status !== statusFilter) return false
+    if (search.trim() && !m.title.toLowerCase().includes(search.trim().toLowerCase()) && !m.description.toLowerCase().includes(search.trim().toLowerCase())) return false
+    return true
+  })
+
   const grouped = new Map<string, EmployeeMaterial[]>()
-  for (const m of items) {
+  for (const m of filtered) {
     const key = m.day === null ? 'General / Anytime' : `Day ${m.day}`
     grouped.set(key, [...(grouped.get(key) ?? []), m])
   }
 
   return (
-    <>
-      {Array.from(grouped.entries()).map(([groupLabel, groupItems]) => (
-        <div key={groupLabel} className="mb-5">
-          <div className="text-[11px] font-bold tracking-[0.6px] uppercase text-faint mb-2">{groupLabel}</div>
-          <div className="bg-white border border-bdr rounded-[5px] px-[17px]">
-            {groupItems.map(m => (
-              <MaterialRow
-                key={m.id}
-                material={m}
-                employeeEmail={employeeEmail}
-                employeeName={employeeName}
-                onUpdate={patch => updateMaterial(m.id, patch)}
-              />
-            ))}
-          </div>
+    <div>
+      <div className="flex items-center gap-4 bg-white border border-bdr rounded-[6px] p-4 mb-4">
+        <div className="flex flex-col items-center gap-1 flex-shrink-0">
+          <ProgressRing value={overallPercent} color={overallPercent === 100 ? '#27B882' : '#4A9BE8'} size={56} strokeWidth={5} />
+          <span className="text-[9.5px] text-faint uppercase tracking-[0.5px] font-bold">Overall</span>
         </div>
-      ))}
-    </>
+        <div className="flex-1">
+          {overallPercent === 100 ? (
+            <div className="text-[13.5px] font-bold text-kgreen">🎉 Induction complete — nice work!</div>
+          ) : continueItem ? (
+            <>
+              <div className="text-[11px] text-faint uppercase tracking-[0.5px] font-bold mb-0.5">Continue where you left off</div>
+              <div className="text-[13.5px] font-bold text-navy">{continueItem.title}</div>
+            </>
+          ) : (
+            <div className="text-[13.5px] font-bold text-navy">{completeCount}/{total} materials complete</div>
+          )}
+        </div>
+        {continueItem && overallPercent !== 100 && (
+          <button
+            onClick={() => setOpenId(continueItem.id)}
+            className="px-[12px] py-[7px] text-[12px] font-semibold bg-sky text-white rounded cursor-pointer hover:opacity-85 flex-shrink-0"
+          >
+            Continue →
+          </button>
+        )}
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search materials…"
+          className="flex-1 max-w-[260px] border border-bdr rounded px-2.5 py-1.5 text-[12.5px]"
+        />
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value as StatusFilter)}
+          className="border border-bdr rounded px-2.5 py-1.5 text-[12.5px]"
+        >
+          <option value="all">All statuses</option>
+          <option value="not-started">Not started</option>
+          <option value="in-progress">In progress</option>
+          <option value="complete">Complete</option>
+          <option value="has-doubt">Has open question</option>
+        </select>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-16 text-muted text-[13px]">No materials match your search/filter.</div>
+      ) : (
+        Array.from(grouped.entries()).map(([groupLabel, groupItems]) => (
+          <div key={groupLabel} className="mb-5">
+            <div className="text-[11px] font-bold tracking-[0.6px] uppercase text-faint mb-2">{groupLabel}</div>
+            <div className="bg-white border border-bdr rounded-[5px] px-[17px]">
+              {groupItems.map(m => (
+                <MaterialRow
+                  key={m.id}
+                  material={m}
+                  employeeEmail={employeeEmail}
+                  employeeName={employeeName}
+                  isOpen={openId === m.id}
+                  onToggleOpen={() => setOpenId(prev => (prev === m.id ? null : m.id))}
+                  onUpdate={patch => updateMaterial(m.id, patch)}
+                />
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
   )
 }

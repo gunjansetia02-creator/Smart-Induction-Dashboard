@@ -47,6 +47,7 @@ export async function Materials() {
     day: m.day,
     status: progressByMaterial.get(m.id)?.status ?? 'not-started',
     watchedPercent: progressByMaterial.get(m.id)?.watched_percent ?? 0,
+    lastPosition: progressByMaterial.get(m.id)?.last_position_seconds ?? 0,
     questions: (questionsByMaterial.get(m.id) ?? []).map(q => ({
       id: q.id,
       question: q.question,
@@ -56,17 +57,10 @@ export async function Materials() {
     })),
   }))
 
-  const complete = enriched.filter(m => m.status === 'complete').length
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <div className="text-[14px] font-bold text-navy">My Materials</div>
-          <div className="text-[12px] text-muted mt-0.5">
-            {enriched.length} material{enriched.length !== 1 ? 's' : ''} · {complete}/{enriched.length} complete
-          </div>
-        </div>
+      <div className="mb-4">
+        <div className="text-[14px] font-bold text-navy">My Materials</div>
       </div>
       <MaterialsListClient
         materials={enriched}

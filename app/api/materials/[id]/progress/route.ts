@@ -8,6 +8,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     employeeName?: string
     status?: 'not-started' | 'in-progress' | 'complete' | 'has-doubt'
     watchedPercent?: number
+    lastPositionSeconds?: number
   }
   try {
     body = await req.json()
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
   if (body.status !== undefined) update.status = body.status
   if (body.watchedPercent !== undefined) update.watched_percent = Math.max(0, Math.min(100, Math.round(body.watchedPercent)))
+  if (body.lastPositionSeconds !== undefined) update.last_position_seconds = Math.max(0, body.lastPositionSeconds)
 
   const { data, error } = await supabase
     .from('material_progress')
