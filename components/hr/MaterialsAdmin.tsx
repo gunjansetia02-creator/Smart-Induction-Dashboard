@@ -13,6 +13,7 @@ export interface AdminMaterial {
   learnersStarted: number
   learnersComplete: number
   openQuestions: number
+  quizCount: number
 }
 
 export async function MaterialsAdmin() {
@@ -31,9 +32,10 @@ export async function MaterialsAdmin() {
   }
 
   const materialIds = materials.map(m => m.id)
-  const [{ data: progress }, { data: questions }] = await Promise.all([
+  const [{ data: progress }, { data: questions }, { data: quizQuestions }] = await Promise.all([
     supabase.from('material_progress').select('material_id, status').in('material_id', materialIds),
     supabase.from('material_questions').select('material_id, resolved').in('material_id', materialIds),
+    supabase.from('material_quiz_questions').select('material_id').in('material_id', materialIds),
   ])
 
   const enriched: AdminMaterial[] = materials.map(m => ({
@@ -41,6 +43,7 @@ export async function MaterialsAdmin() {
     learnersStarted: (progress ?? []).filter(p => p.material_id === m.id).length,
     learnersComplete: (progress ?? []).filter(p => p.material_id === m.id && p.status === 'complete').length,
     openQuestions: (questions ?? []).filter(q => q.material_id === m.id && !q.resolved).length,
+    quizCount: (quizQuestions ?? []).filter(q => q.material_id === m.id).length,
   }))
 
   return <MaterialsAdminClient initialMaterials={enriched} />

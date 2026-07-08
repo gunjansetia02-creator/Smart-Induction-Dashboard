@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-// HR view: escalated questions across all materials — unresolved by default, or all with ?all=true
+// Employee view: all of their own escalated questions, across all materials
 export async function GET(req: NextRequest) {
-  const showAll = req.nextUrl.searchParams.get('all') === 'true'
+  const employeeEmail = req.nextUrl.searchParams.get('employeeEmail')
+  if (!employeeEmail) return NextResponse.json({ error: 'employeeEmail is required' }, { status: 422 })
 
-  let query = supabase
+  const { data: questions, error } = await supabase
     .from('material_questions')
     .select('*, materials(title)')
     .eq('escalated', true)
+    .eq('employee_email', employeeEmail)
     .order('created_at', { ascending: false })
 
-  if (!showAll) query = query.eq('resolved', false)
-
-  const { data: questions, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ questions })
 }

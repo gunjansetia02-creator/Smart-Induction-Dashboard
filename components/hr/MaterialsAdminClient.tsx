@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { AdminMaterial } from './MaterialsAdmin'
+import { QuizManagerModal } from './QuizManagerModal'
 
 type FormState = {
   id?: string
@@ -38,6 +39,7 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadedFilename, setUploadedFilename] = useState<string | null>(null)
+  const [quizManagerFor, setQuizManagerFor] = useState<AdminMaterial | null>(null)
 
   useEffect(() => {
     fetch('/api/materials/questions')
@@ -118,7 +120,8 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
       const saved = data.material as AdminMaterial
 
       setMaterials(prev => {
-        const withStats = { ...saved, learnersStarted: form.id ? prev.find(m => m.id === form.id)?.learnersStarted ?? 0 : 0, learnersComplete: form.id ? prev.find(m => m.id === form.id)?.learnersComplete ?? 0 : 0, openQuestions: form.id ? prev.find(m => m.id === form.id)?.openQuestions ?? 0 : 0 }
+        const existing = form.id ? prev.find(m => m.id === form.id) : undefined
+        const withStats = { ...saved, learnersStarted: existing?.learnersStarted ?? 0, learnersComplete: existing?.learnersComplete ?? 0, openQuestions: existing?.openQuestions ?? 0, quizCount: existing?.quizCount ?? 0 }
         const next = form.id ? prev.map(m => (m.id === form.id ? withStats : m)) : [...prev, withStats]
         return next.sort((a, b) => (a.day ?? Infinity) - (b.day ?? Infinity))
       })
@@ -197,9 +200,11 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
                       <span>{m.type === 'pdf' ? 'PDF' : 'Video'}{m.duration ? ` · ${m.duration}` : ''}</span>
                       <span>· {m.learnersComplete}/{m.learnersStarted || 0} completed</span>
                       {m.openQuestions > 0 && <span className="text-kamber font-semibold">· {m.openQuestions} open question{m.openQuestions !== 1 ? 's' : ''}</span>}
+                      <span className={m.quizCount > 0 ? 'text-sky' : ''}>· {m.quizCount > 0 ? `${m.quizCount} quiz Qs` : 'no quiz'}</span>
                     </div>
                   </div>
                   <div className="flex gap-1.5 flex-shrink-0">
+                    <button onClick={() => setQuizManagerFor(m)} className="px-[9px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">Quiz</button>
                     <button onClick={() => openEdit(m)} className="px-[9px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">Edit</button>
                     <button onClick={() => handleDelete(m.id)} className="px-[9px] py-[5px] text-[11.5px] font-semibold bg-kred-dim text-red-700 rounded cursor-pointer hover:opacity-85">Delete</button>
                   </div>
@@ -293,6 +298,15 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
             </div>
           </div>
         </div>
+      )}
+
+      {quizManagerFor && (
+        <QuizManagerModal
+          materialId={quizManagerFor.id}
+          materialTitle={quizManagerFor.title}
+          onClose={() => setQuizManagerFor(null)}
+          onCountChange={count => setMaterials(prev => prev.map(m => (m.id === quizManagerFor.id ? { ...m, quizCount: count } : m)))}
+        />
       )}
     </div>
   )

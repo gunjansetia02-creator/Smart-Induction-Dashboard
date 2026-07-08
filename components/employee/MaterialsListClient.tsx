@@ -5,6 +5,7 @@ import { Pill } from '@/components/ui/Pill'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import { VideoPlayer } from './VideoPlayer'
+import { QuizModal } from './QuizModal'
 import { detectVideoSource } from '@/lib/video-embed'
 
 export interface EmployeeQuestion {
@@ -26,6 +27,7 @@ export interface EmployeeMaterial {
   status: 'not-started' | 'in-progress' | 'complete' | 'has-doubt'
   watchedPercent: number
   lastPosition: number
+  quizCount: number
   questions: EmployeeQuestion[]
 }
 
@@ -73,12 +75,19 @@ function MaterialRow({
   const [asking, setAsking] = useState(false)
   const [videoError, setVideoError] = useState(false)
   const [faq, setFaq] = useState<{ id: string; question: string; ai_answer: string }[] | null>(null)
+  const [quizOpen, setQuizOpen] = useState(false)
 
   const videoSource = material.type === 'video' ? detectVideoSource(material.url) : null
+  const hasQuiz = material.quizCount > 0
 
   function markDone() {
+    if (hasQuiz) { setQuizOpen(true); return }
     onUpdate({ status: 'complete', watchedPercent: 100 })
     saveProgress(material.id, employeeEmail, employeeName, { status: 'complete', watchedPercent: 100 })
+  }
+
+  function handleQuizPassed() {
+    onUpdate({ status: 'complete', watchedPercent: 100 })
   }
 
   function startIfNeeded() {
@@ -89,7 +98,7 @@ function MaterialRow({
   }
 
   function handleVideoProgress(percent: number, positionSeconds: number) {
-    const status = percent >= 95 ? 'complete' : 'in-progress'
+    const status = percent >= 95 && !hasQuiz ? 'complete' : 'in-progress'
     onUpdate({ watchedPercent: percent, lastPosition: positionSeconds, status })
     saveProgress(material.id, employeeEmail, employeeName, { watchedPercent: percent, lastPositionSeconds: positionSeconds, status })
   }
@@ -162,6 +171,7 @@ function MaterialRow({
           <div className="flex items-center gap-[9px] text-[11.5px] text-muted mt-1 flex-wrap">
             <span>{material.type === 'pdf' ? 'PDF' : 'Video'}{material.duration ? ` · ${material.duration}` : ''}</span>
             {statusPill(material)}
+            {hasQuiz && material.status !== 'complete' && <span className="text-sky">📝 Quiz required to complete</span>}
             {openQuestions.length > 0 && <span className="text-kamber">{openQuestions.length} awaiting answer</span>}
           </div>
           <div className="mt-1.5 max-w-[280px]">
@@ -208,11 +218,22 @@ function MaterialRow({
           {material.status !== 'complete' && (
             <div className="mt-2.5">
               <button onClick={markDone} className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-kgreen text-white rounded cursor-pointer hover:opacity-85">
-                ✓ Mark as Done
+                {hasQuiz ? '📝 Take Quiz to Complete' : '✓ Mark as Done'}
               </button>
             </div>
           )}
         </div>
+      )}
+
+      {quizOpen && (
+        <QuizModal
+          materialId={material.id}
+          materialTitle={material.title}
+          employeeEmail={employeeEmail}
+          employeeName={employeeName}
+          onClose={() => setQuizOpen(false)}
+          onPassed={handleQuizPassed}
+        />
       )}
 
       {askOpen && (

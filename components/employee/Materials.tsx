@@ -26,15 +26,20 @@ export async function Materials() {
   }
 
   const materialIds = materials.map(m => m.id)
-  const [{ data: progress }, { data: questions }] = await Promise.all([
+  const [{ data: progress }, { data: questions }, { data: quizQuestions }] = await Promise.all([
     supabase.from('material_progress').select('*').eq('employee_email', DEMO_EMPLOYEE_EMAIL).in('material_id', materialIds),
     supabase.from('material_questions').select('*').eq('employee_email', DEMO_EMPLOYEE_EMAIL).in('material_id', materialIds).order('created_at', { ascending: true }),
+    supabase.from('material_quiz_questions').select('id, material_id').in('material_id', materialIds),
   ])
 
   const progressByMaterial = new Map((progress ?? []).map(p => [p.material_id, p]))
   const questionsByMaterial = new Map<string, typeof questions>()
   for (const q of questions ?? []) {
     questionsByMaterial.set(q.material_id, [...(questionsByMaterial.get(q.material_id) ?? []), q])
+  }
+  const quizCountByMaterial = new Map<string, number>()
+  for (const q of quizQuestions ?? []) {
+    quizCountByMaterial.set(q.material_id, (quizCountByMaterial.get(q.material_id) ?? 0) + 1)
   }
 
   const enriched: EmployeeMaterial[] = materials.map(m => ({
@@ -48,6 +53,7 @@ export async function Materials() {
     status: progressByMaterial.get(m.id)?.status ?? 'not-started',
     watchedPercent: progressByMaterial.get(m.id)?.watched_percent ?? 0,
     lastPosition: progressByMaterial.get(m.id)?.last_position_seconds ?? 0,
+    quizCount: quizCountByMaterial.get(m.id) ?? 0,
     questions: (questionsByMaterial.get(m.id) ?? []).map(q => ({
       id: q.id,
       question: q.question,
