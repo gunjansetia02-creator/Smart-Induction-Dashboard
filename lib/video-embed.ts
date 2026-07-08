@@ -1,7 +1,7 @@
 export type VideoSource =
   | { kind: 'youtube'; videoId: string }
   | { kind: 'drive'; fileId: string }
-  | { kind: 'sharepoint'; embedUrl: string }
+  | { kind: 'sharepoint' }
   | { kind: 'direct' } // a raw file the browser's <video> tag can play directly
   | { kind: 'unsupported' }
 
@@ -30,10 +30,10 @@ export function detectVideoSource(url: string): VideoSource {
 
     // SharePoint / OneDrive "for Business" share links, e.g.
     // https://company-my.sharepoint.com/:v:/g/personal/.../ID?e=token
+    // Note: most tenants block these from being iframed at all (X-Frame-Options), so we
+    // don't try to embed it — just detect it so the UI can offer a clean "open" experience.
     if (host.endsWith('.sharepoint.com') && /\/:v:\//.test(u.pathname)) {
-      const embedUrl = new URL(url)
-      embedUrl.searchParams.set('action', 'embedview')
-      return { kind: 'sharepoint', embedUrl: embedUrl.toString() }
+      return { kind: 'sharepoint' }
     }
 
     if (/\.(mp4|webm|ogg|ogv|mov)$/i.test(u.pathname)) {

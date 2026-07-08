@@ -110,18 +110,21 @@ export function VideoPlayer({
   }
 
   if (source.kind === 'sharepoint') {
+    // Koenig's SharePoint tenant blocks iframe embedding outright (X-Frame-Options), not just
+    // login cookies — no amount of authentication fixes that, so don't attempt an iframe at all.
     return (
-      <div>
-        <iframe
-          src={source.embedUrl}
-          className="w-full max-w-[480px] aspect-video rounded-[4px] border-0 bg-white"
-          allow="autoplay"
-        />
-        <div className="text-[11px] text-faint mt-1.5">
-          Hosted on SharePoint. If the preview above doesn&apos;t load — common when your browser blocks Microsoft sign-in inside embedded frames —{' '}
-          <a href={url} target="_blank" rel="noopener noreferrer" className="text-sky font-semibold hover:underline">open it directly in SharePoint ↗</a> instead.
-          Watch progress can&apos;t be auto-tracked here either way; mark it done once you&apos;ve watched it.
-        </div>
+      <div className="w-full max-w-[480px] bg-white border border-bdr rounded-[6px] p-6 flex flex-col items-center text-center gap-2.5">
+        <div className="w-[46px] h-[46px] rounded-full bg-sky-dim flex items-center justify-center text-[20px] text-sky">▶</div>
+        <div className="text-[13px] text-navy font-semibold">This video is hosted on SharePoint</div>
+        <div className="text-[11.5px] text-muted max-w-[320px]">SharePoint doesn&apos;t allow its videos to be shown inside other sites, so it opens in a new tab instead. Watch progress can&apos;t be auto-tracked here — mark it done once you&apos;ve watched it.</div>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1 px-[14px] py-[8px] text-[12.5px] font-semibold bg-sky text-white rounded no-underline hover:opacity-85"
+        >
+          ▶ Watch on SharePoint ↗
+        </a>
       </div>
     )
   }
