@@ -1,3 +1,5 @@
+import { unstable_cache } from 'next/cache'
+
 const PMS_BASE     = 'https://api.koenig-solutions.com'
 const PMS_API_KEY  = process.env.PMS_API_KEY
 const PMS_USERNAME = process.env.PMS_USERNAME
@@ -87,7 +89,7 @@ async function getTokens(): Promise<TokenContent> {
   throw new Error('PMS token failed after all retries')
 }
 
-export async function fetchAllEmployees(): Promise<PMSEmployee[]> {
+async function fetchAllEmployeesLive(): Promise<PMSEmployee[]> {
   try {
     console.log('[PMS] Fetching all employees...')
     
@@ -143,6 +145,10 @@ export async function fetchAllEmployees(): Promise<PMSEmployee[]> {
     throw error
   }
 }
+
+// The PMS round trip (token + ~600-employee fetch) is slow and identical for every visitor,
+// so cache it for a few minutes instead of re-fetching on every single page navigation.
+export const fetchAllEmployees = unstable_cache(fetchAllEmployeesLive, ['pms-all-employees'], { revalidate: 180 })
 
 // Parse DOJ from Indian format DD/MM/YYYY, DD-MM-YYYY, or ISO YYYY-MM-DD
 export function parseDOJ(doj: string | null): Date | null {

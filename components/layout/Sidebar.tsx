@@ -1,18 +1,18 @@
 import Link from 'next/link'
 
 const hrNav = [
-  { label: 'Overview',      href: '/hr',                  badge: '' },
-  { label: 'Scheduler',     href: '/hr?tab=scheduler',    badge: '' },
-  { label: 'New Joiners',   href: '/hr?tab=profiles',     badge: '5' },
-  { label: 'Materials',     href: '/hr?tab=materials',    badge: '' },
-  { label: 'Doubt Session', href: '/hr?tab=doubt',        badge: '4' },
+  { label: 'Overview',      href: '/hr',                  badge: '', icon: '📊' },
+  { label: 'Scheduler',     href: '/hr?tab=scheduler',    badge: '', icon: '📅' },
+  { label: 'New Joiners',   href: '/hr?tab=profiles',     badge: '5', icon: '🧑‍💼' },
+  { label: 'Materials',     href: '/hr?tab=materials',    badge: '', icon: '🎬' },
+  { label: 'Doubt Session', href: '/hr?tab=doubt',        badge: '4', icon: '💬' },
 ]
 
 const empNav = [
-  { label: 'Home',          href: '/employee',                badge: '' },
-  { label: 'My Materials',  href: '/employee?tab=materials',  badge: '' },
-  { label: 'Batch Channel', href: '/employee?tab=batch',      badge: '' },
-  { label: 'Doubt Session', href: '/employee?tab=doubt',      badge: '' },
+  { label: 'Home',          href: '/employee',                badge: '', icon: '🏠' },
+  { label: 'My Materials',  href: '/employee?tab=materials',  badge: '', icon: '🎬' },
+  { label: 'Batch Channel', href: '/employee?tab=batch',      badge: '', icon: '👋' },
+  { label: 'Doubt Session', href: '/employee?tab=doubt',      badge: '', icon: '💬' },
 ]
 
 function navKey(href: string) {
@@ -24,10 +24,10 @@ export function Sidebar({ isHR, activeTab }: { isHR: boolean; activeTab: string 
   const nav = isHR ? hrNav : empNav
 
   return (
-    <aside className="w-[220px] bg-navy flex flex-col flex-shrink-0 sticky top-0 h-screen overflow-y-auto">
+    <aside className="w-[224px] bg-navy flex flex-col flex-shrink-0 sticky top-0 h-screen overflow-y-auto">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-[18px] py-[17px] border-b border-white/[0.07]">
-        <div className="w-8 h-8 bg-sky rounded-[5px] flex items-center justify-center text-[15px] font-black text-white flex-shrink-0">
+        <div className="w-8 h-8 bg-gradient-to-br from-sky to-[#2f6fc4] rounded-[8px] flex items-center justify-center text-[15px] font-black text-white flex-shrink-0 shadow-[0_2px_6px_rgba(74,155,232,0.4)]">
           K
         </div>
         <div>
@@ -37,8 +37,8 @@ export function Sidebar({ isHR, activeTab }: { isHR: boolean; activeTab: string 
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-2.5">
-        <div className="px-[18px] py-2 text-[10px] font-bold tracking-[1px] uppercase text-white/30">
+      <nav className="flex-1 py-3 px-2.5">
+        <div className="px-[10px] py-2 text-[10px] font-bold tracking-[1px] uppercase text-white/30">
           {isHR ? 'HR Admin' : 'My Induction'}
         </div>
         {nav.map((item) => {
@@ -48,14 +48,16 @@ export function Sidebar({ isHR, activeTab }: { isHR: boolean; activeTab: string 
             <Link
               key={item.href}
               href={item.href}
+              prefetch
               className={[
-                'flex items-center gap-2.5 px-[18px] py-[9px] text-[13.5px]',
-                'border-l-[3px] transition-all no-underline',
+                'flex items-center gap-2.5 px-[12px] py-[9px] my-[1px] text-[13.5px] rounded-[8px]',
+                'transition-all no-underline',
                 isActive
-                  ? 'text-white border-sky bg-sky/[0.13] font-semibold'
-                  : 'text-white/58 border-transparent hover:text-white/88 hover:bg-white/[0.05]',
+                  ? 'text-white bg-white/[0.12] font-semibold shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
+                  : 'text-white/58 hover:text-white/88 hover:bg-white/[0.05]',
               ].join(' ')}
             >
+              <span className="text-[14px] leading-none flex-shrink-0">{item.icon}</span>
               {item.label}
               {item.badge && (
                 <span className="ml-auto bg-kamber text-navy text-[10px] font-black px-1.5 rounded-full">

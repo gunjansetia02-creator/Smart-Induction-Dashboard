@@ -38,10 +38,10 @@ export async function Overview() {
     <div>
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-[14px] mb-5">
-        <KpiCard color="blue"  label={`Joiners — ${monthLabel}`} value={thisMonth}     sub="From PMS · live data" />
-        <KpiCard color="green" label="Inductions Complete"        value={complete}      sub={`${completionPct}% completion rate`} />
-        <KpiCard color="amber" label="Pending"                    value={pending}       sub={`${allJoiners.filter(j=>j.status==='in-progress').length} in progress · ${allJoiners.filter(j=>j.status==='not-started').length} not started`} />
-        <KpiCard color="red"   label="Needs Attention"            value={needsAction}   sub="Not started or email bounced" />
+        <KpiCard color="blue"  icon="👥" label={`Joiners — ${monthLabel}`} value={thisMonth}     sub="From PMS · live data" />
+        <KpiCard color="green" icon="✅" label="Inductions Complete"        value={complete}      sub={`${completionPct}% completion rate`} />
+        <KpiCard color="amber" icon="⏳" label="Pending"                    value={pending}       sub={`${allJoiners.filter(j=>j.status==='in-progress').length} in progress · ${allJoiners.filter(j=>j.status==='not-started').length} not started`} />
+        <KpiCard color="red"   icon="⚠️" label="Needs Attention"            value={needsAction}   sub="Not started or email bounced" />
       </div>
 
       {/* Chart + Feed */}
@@ -73,7 +73,7 @@ export async function Overview() {
               <thead>
                 <tr>
                   {['Name','Dept','Joined','Videos','Progress','Status'].map(h => (
-                    <th key={h} className="px-[13px] py-[9px] text-left text-[10.5px] font-bold tracking-[0.6px] uppercase text-faint bg-ground border-b border-bdr whitespace-nowrap">
+                    <th key={h} className="px-[13px] py-[10px] text-left text-[10.5px] font-bold tracking-[0.6px] uppercase text-white/70 bg-navy whitespace-nowrap">
                       {h}
                     </th>
                   ))}
@@ -81,7 +81,7 @@ export async function Overview() {
               </thead>
               <tbody>
                 {weekJoiners.map((j) => (
-                  <tr key={j.id} className="hover:bg-[#F7FAFD]">
+                  <tr key={j.id} className="hover:bg-[#F7FAFD] transition-colors">
                     <td className="px-[13px] py-[11px] text-[13px] border-b border-ground"><strong>{j.name}</strong></td>
                     <td className="px-[13px] py-[11px] text-[13px] border-b border-ground">{j.dept}</td>
                     <td className="px-[13px] py-[11px] text-[13px] border-b border-ground">{j.joinedDate}</td>
