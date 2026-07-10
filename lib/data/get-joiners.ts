@@ -78,6 +78,14 @@ async function fetchMapped(withinDays: number): Promise<MappedJoiner[]> {
         emailStatus:   (email ? 'delivered' : 'bounced') as 'delivered' | 'bounced',
         email,
         avatarColor:   AVATAR_COLORS[i % AVATAR_COLORS.length],
+        reportingManager:      emp['Reporting Manager'] ?? null,
+        reportingManagerEmail: emp['Reporting Manager Email'] ?? null,
+        baseLocation:          emp['Base Location'] ?? null,
+        phone:                 emp['Phone'] || null,
+        personalEmail:         emp['Personal Email'] || null,
+        officeEmail:           emp['Office Email'] || null,
+        linkedIn:              emp['LinkedIn Profile'] || null,
+        pipStatus:             emp['PIP Status'] || null,
       }
     })
     .sort((a, b) => b._doj.getTime() - a._doj.getTime())

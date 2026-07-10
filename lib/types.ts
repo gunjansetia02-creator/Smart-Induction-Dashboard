@@ -19,6 +19,15 @@ export interface Joiner {
   emailStatus: EmailStatus
   email: string
   avatarColor: string
+  // Richer PMS fields, shown in the joiner detail modal
+  reportingManager: string | null
+  reportingManagerEmail: string | null
+  baseLocation: string | null
+  phone: string | null
+  personalEmail: string | null
+  officeEmail: string | null
+  linkedIn: string | null
+  pipStatus: string | null
 }
 
 export interface Doubt {

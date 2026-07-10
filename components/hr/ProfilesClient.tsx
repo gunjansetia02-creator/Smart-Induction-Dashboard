@@ -1,12 +1,14 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Pill }        from '@/components/ui/Pill'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import { PmsSyncStatus } from './PmsSyncStatus'
 import { DateRangeFilter, type DateRange } from './DateRangeFilter'
 import { WelcomeKitButton } from './WelcomeKitButton'
+import { JoinerDetailModal } from './JoinerDetailModal'
 import type { Joiner, JoinerStatus } from '@/lib/types'
+import type { JoinerStatusEntry } from '@/app/api/joiners/status/route'
 
 function ringColor(s: JoinerStatus) {
   if (s === 'complete')    return '#27B882'
@@ -24,6 +26,26 @@ function statusPill(s: JoinerStatus) {
   return <Pill variant="red">Not Started</Pill>
 }
 
+function StatusChips({ s }: { s: JoinerStatusEntry | undefined }) {
+  if (!s) return <div className="text-[10px] text-faint mt-2">Loading status…</div>
+  return (
+    <div className="flex flex-wrap justify-center gap-1 mt-2">
+      <span className={`text-[9.5px] font-semibold px-1.5 py-[2px] rounded ${s.welcomeEmailSent ? 'bg-kgreen-dim text-emerald-700' : 'bg-ground text-faint'}`}>
+        ✉️ {s.welcomeEmailSent ? 'Invited' : 'No Invite'}
+      </span>
+      <span className="text-[9.5px] font-semibold px-1.5 py-[2px] rounded bg-sky-dim text-blue-700">
+        🎬 {s.materialsPercent}%
+      </span>
+      <span className={`text-[9.5px] font-semibold px-1.5 py-[2px] rounded ${s.openDoubts > 0 ? 'bg-kamber-dim text-amber-800' : 'bg-ground text-faint'}`}>
+        💬 {s.openDoubts > 0 ? `${s.openDoubts} Open` : 'No Doubts'}
+      </span>
+      {s.inductionComplete && (
+        <span className="text-[9.5px] font-semibold px-1.5 py-[2px] rounded bg-kgreen-dim text-emerald-700">🎉 Done</span>
+      )}
+    </div>
+  )
+}
+
 export function ProfilesClient({
   joiners,
   live,
@@ -37,6 +59,8 @@ export function ProfilesClient({
 }) {
   const [range, setRange] = useState<DateRange>(null)
   const [rangeLabel, setRangeLabel] = useState('All Time')
+  const [statuses, setStatuses] = useState<Record<string, JoinerStatusEntry>>({})
+  const [selected, setSelected] = useState<Joiner | null>(null)
 
   const filtered = useMemo(() => {
     if (!range) return joiners
@@ -46,9 +70,25 @@ export function ProfilesClient({
     })
   }, [joiners, range])
 
+  // Batched status fetch — one request for the whole visible set, not one per card
+  useEffect(() => {
+    const emails = filtered.map(j => j.email).filter(Boolean)
+    if (emails.length === 0) return
+    fetch('/api/joiners/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emails }),
+    })
+      .then(r => r.json())
+      .then(d => setStatuses(prev => ({ ...prev, ...(d.statuses ?? {}) })))
+      .catch(() => {})
+  }, [filtered])
+
   return (
     <div>
       <PmsSyncStatus live={live} error={error} />
+
+      <DateRangeFilter initialPreset="30d" onChange={(r, label) => { setRange(r); setRangeLabel(label) }} />
 
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div>
@@ -58,7 +98,6 @@ export function ProfilesClient({
           </div>
         </div>
         <div className="flex gap-2">
-          <DateRangeFilter onChange={(r, label) => { setRange(r); setRangeLabel(label) }} />
           <WelcomeKitButton joiners={filtered} live={live} hrEmail={hrEmail} />
           <button className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">
             Export CSV
@@ -72,11 +111,12 @@ export function ProfilesClient({
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-muted text-[13px]">No joiners match this date range.</div>
       ) : (
-        <div className="grid gap-[14px]" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))' }}>
+        <div className="grid gap-[14px]" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
           {filtered.map((j) => (
             <div
               key={j.id}
-              className="bg-white border border-bdr rounded-[5px] p-5 flex flex-col items-center text-center cursor-pointer hover:shadow-md hover:-translate-y-[2px] transition-all"
+              onClick={() => setSelected(j)}
+              className="bg-white border border-bdr rounded-[10px] shadow-[0_1px_2px_rgba(16,24,40,0.04),0_1px_3px_rgba(16,24,40,0.06)] p-5 flex flex-col items-center text-center cursor-pointer hover:shadow-[0_4px_10px_rgba(16,24,40,0.08)] hover:-translate-y-[2px] transition-all"
             >
               <div className="mb-3">
                 <ProgressRing value={j.progress} color={ringColor(j.status)} size={70} />
@@ -87,9 +127,14 @@ export function ProfilesClient({
               <div className="text-[11px] text-faint mt-2" title={`Date of Joining: ${j.joinedDate}`}>
                 DOJ: {j.joinedDate} · {j.videosWatched}/{j.totalVideos} videos
               </div>
+              <StatusChips s={statuses[j.email]} />
             </div>
           ))}
         </div>
+      )}
+
+      {selected && (
+        <JoinerDetailModal joiner={selected} status={statuses[selected.email] ?? null} onClose={() => setSelected(null)} />
       )}
     </div>
   )

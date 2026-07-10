@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendWelcomeEmail, type NewJoiner } from '@/lib/automation/welcome-email'
 import { addAllToMondayMeeting } from '@/lib/automation/meeting-invite'
+import { supabase } from '@/lib/supabase'
 
 interface RequestBody {
   joiners?: NewJoiner[]
@@ -56,5 +57,18 @@ export async function POST(req: NextRequest) {
   }))
 
   const allOk = (body.skipEmail || emailResults.every(r => r.status === 'fulfilled')) && meetingResult === 'invited'
+
+  // Record what actually went out, per joiner, so the UI can show a real "invite sent" status
+  const now = new Date().toISOString()
+  await Promise.all(
+    results.map((r) => {
+      const update: Record<string, unknown> = { employee_email: r.email, updated_at: now }
+      if (!body.skipEmail && r.email_sent === true) update.welcome_email_sent_at = now
+      if (meetingResult === 'invited') update.meeting_invite_sent_at = now
+      if (Object.keys(update).length <= 2) return null // nothing new to record for this joiner
+      return supabase.from('joiner_communications').upsert(update, { onConflict: 'employee_email' })
+    })
+  )
+
   return NextResponse.json({ processed: joiners.length, meeting: meetingResult, results }, { status: allOk ? 200 : 207 })
 }
