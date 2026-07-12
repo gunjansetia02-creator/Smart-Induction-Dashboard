@@ -39,13 +39,25 @@ function buildEmailHtml(name: string, email: string): string {
             <p style="margin:0 0 20px;font-size:17px;color:#1B2D50;font-weight:600;">Welcome aboard, ${firstName}! 🎉</p>
 
             <p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.7;">
-              We're thrilled to have you join the Koenig family. To make your first week smooth and structured,
-              we've set up our <strong>Smart Induction Programme</strong> — a guided Mon–Fri journey that gets
-              you up to speed quickly.
+              We're thrilled to have you join the Koenig family. Your induction is self-paced through the
+              <strong>Smart Induction Dashboard</strong> — review your materials whenever suits you, and reach
+              out anytime you have a question.
             </p>
 
+            <!-- Quick-start callout -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+              <tr>
+                <td style="background:#F4F8FD;border:1px solid #D0E7F8;border-radius:8px;padding:14px 16px;">
+                  <p style="margin:0;font-size:12px;color:#1B2D50;font-weight:700;letter-spacing:0.3px;">📋 QUICK START</p>
+                  <p style="margin:6px 0 0;font-size:13px;color:#374151;line-height:1.6;">
+                    Review each material → Pass its quiz (70%+) → Ask doubts anytime → Induction complete.
+                  </p>
+                </td>
+              </tr>
+            </table>
+
             <p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.7;">
-              Here's what happens next:
+              Here's how it works:
             </p>
 
             <!-- Steps -->
@@ -53,32 +65,34 @@ function buildEmailHtml(name: string, email: string): string {
               <tr>
                 <td style="padding:10px 0;border-bottom:1px solid #EDF1F7;">
                   <span style="display:inline-block;background:#D0E7F8;color:#1B2D50;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:10px;">TODAY</span>
-                  <span style="font-size:13px;color:#374151;">Join the Induction Dashboard and meet your fellow new joiners in the Batch Channel.</span>
+                  <span style="font-size:13px;color:#374151;">Open your Induction Dashboard and start reviewing your materials, one by one, in the order they're listed.</span>
                 </td>
               </tr>
               <tr>
                 <td style="padding:10px 0;border-bottom:1px solid #EDF1F7;">
-                  <span style="display:inline-block;background:#C5F0DF;color:#0F6B48;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:10px;">MONDAY</span>
-                  <span style="font-size:13px;color:#374151;"><strong>12:00 PM</strong> — Live Induction Call with me and your batch. A Teams invite has been sent to you separately.</span>
+                  <span style="display:inline-block;background:#FDE8C2;color:#7C4A00;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:10px;">AFTER EACH ONE</span>
+                  <span style="font-size:13px;color:#374151;">Attempt the short quiz for that material. Score <strong>70% or more</strong> and it's marked complete — below that, you'll review it again and retake the quiz.</span>
                 </td>
               </tr>
               <tr>
                 <td style="padding:10px 0;border-bottom:1px solid #EDF1F7;">
-                  <span style="display:inline-block;background:#FDE8C2;color:#7C4A00;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:10px;">MON–FRI</span>
-                  <span style="font-size:13px;color:#374151;">Watch induction videos and flag any doubts directly on the dashboard.</span>
+                  <span style="display:inline-block;background:#E4D9F7;color:#5B2A9E;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:10px;">GOT A QUESTION?</span>
+                  <span style="font-size:13px;color:#374151;">Ask it right there on the dashboard against that material — it comes straight to me by email and I'll answer it directly.</span>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0;border-bottom:1px solid #EDF1F7;">
+                  <span style="display:inline-block;background:#C5F0DF;color:#0F6B48;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:10px;">MONDAY · 12 PM</span>
+                  <span style="font-size:13px;color:#374151;">Optional doubt-clearing call with me, next on <strong>${monday}</strong> — join if anything's still unresolved or you'd rather talk it through live. A Teams invite will follow separately; no need to attend if you have nothing pending.</span>
                 </td>
               </tr>
               <tr>
                 <td style="padding:10px 0;">
-                  <span style="display:inline-block;background:#F8D5D1;color:#7C1B0F;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:10px;">FRIDAY</span>
-                  <span style="font-size:13px;color:#374151;"><strong>12:00 PM</strong> — Doubt Session: all your questions answered live.</span>
+                  <span style="display:inline-block;background:#DCEFE1;color:#1F6E3A;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:10px;">ALL DONE</span>
+                  <span style="font-size:13px;color:#374151;">Once every material and its quiz are complete, your induction is officially wrapped up.</span>
                 </td>
               </tr>
             </table>
-
-            <p style="margin:0 0 8px;font-size:14px;color:#374151;line-height:1.7;">
-              Your first session is on <strong>${monday} at 12:00 PM</strong>. You'll receive a separate Teams calendar invite shortly.
-            </p>
 
             <!-- CTA -->
             <p style="margin:28px 0 8px;text-align:center;">
@@ -120,7 +134,7 @@ export async function sendWelcomeEmail(joiner: NewJoiner): Promise<void> {
 
   const payload = {
     message: {
-      subject: `Welcome to Koenig, ${joiner.name.split(' ')[0]}! Your Induction Starts Monday 🎉`,
+      subject: `Welcome to Koenig, ${joiner.name.split(' ')[0]}! Start Your Induction Today 🎉`,
       body: { contentType: 'HTML', content: html },
       toRecipients: [
         { emailAddress: { address: joiner.email, name: joiner.name } },

@@ -9,11 +9,11 @@ const batchmates = [
 ]
 
 const checklist = [
-  { label: 'Attend Monday induction call',   done: true,  active: false, badge: null },
+  { label: 'Open your Induction Dashboard',  done: true,  active: false, badge: null },
   { label: 'Join the batch channel on Teams',done: true,  active: false, badge: null },
   { label: 'Introduce yourself to the batch',done: true,  active: false, badge: null },
-  { label: 'Watch all induction videos',     done: false, active: true,  badge: { text: '2 / 4',  variant: 'blue' as const } },
-  { label: 'Attend Friday doubt session',    done: false, active: false, badge: { text: '27 Jun', variant: 'grey' as const } },
+  { label: 'Watch all induction materials',  done: false, active: true,  badge: { text: '2 / 4',  variant: 'blue' as const } },
+  { label: 'Pass each quiz (70%+)',          done: false, active: false, badge: { text: '0 / 4',  variant: 'grey' as const } },
 ]
 
 const PROGRESS = 60
@@ -56,8 +56,7 @@ export function Home() {
         {/* Date chips */}
         <div className="ml-auto flex flex-col gap-[9px] items-end">
           {[
-            { label: 'Doubt Session',  date: 'Fri 27 Jun · 12 PM' },
-            { label: 'Next Cohort',    date: 'Mon 30 Jun · 12 PM' },
+            { label: 'Doubt-Clearing Call (Optional)', date: 'Mon 30 Jun · 12 PM' },
           ].map((d) => (
             <div key={d.label}
               className="rounded-[4px] py-[7px] px-[13px] text-right"
@@ -116,7 +115,7 @@ export function Home() {
           <div className="bg-navy border border-navy rounded-[5px] p-[15px_17px]">
             <div className="text-[11px] text-white/50 tracking-[0.6px] uppercase mb-1">My Flagged Doubts</div>
             <div className="text-[30px] font-extrabold text-white tabular mb-1">1</div>
-            <div className="text-[12.5px] text-white/60 mb-3">Question queued for Friday&apos;s session</div>
+            <div className="text-[12.5px] text-white/60 mb-3">Sent to HR — reply pending, or raise it on Monday&apos;s call</div>
             <button className="w-full px-[10px] py-[5px] text-[11.5px] font-semibold rounded cursor-pointer hover:opacity-85"
               style={{ background: 'rgba(255,255,255,0.12)', color: '#fff' }}>
               View My Doubt

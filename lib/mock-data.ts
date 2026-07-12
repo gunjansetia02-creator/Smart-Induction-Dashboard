@@ -35,7 +35,7 @@ export const doubts: Doubt[] = [
 export const feedItems: FeedItem[] = [
   { id: '1', text: 'Rahul Mehta completed induction — 100%',                 time: '2h ago',    type: 'green' },
   { id: '2', text: 'Kavya Nair flagged a doubt on Video 3',                  time: '3h ago',    type: 'blue'  },
-  { id: '3', text: 'Friday session auto-scheduled for 27 Jun · 12 PM',       time: 'Today',     type: 'blue'  },
+  { id: '3', text: 'Monday doubt-clearing call auto-scheduled for 30 Jun · 12 PM', time: 'Today', type: 'blue'  },
   { id: '4', text: "Dev Sharma hasn't opened materials yet",                 time: 'Yesterday', type: 'amber' },
   { id: '5', text: 'Collaterals auto-sent to 5 new joiners at 1 PM',         time: 'Mon',       type: 'green' },
   { id: '6', text: 'Welcome emails auto-sent to Rohan, Ananya',              time: 'Mon',       type: 'green' },

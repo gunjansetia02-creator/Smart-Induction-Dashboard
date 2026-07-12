@@ -5,7 +5,7 @@ const hrTitles: Record<string, string> = {
   scheduler:   'Induction Scheduler',
   profiles:    'New Joiner Profiles',
   materials:   'Induction Materials',
-  doubt:       'Friday Doubt Session',
+  doubt:       'Doubt Session',
 }
 
 const empTitles: Record<string, string> = {

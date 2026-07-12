@@ -46,11 +46,11 @@ async function createMondayEvent(
   }))
 
   const payload = {
-    subject: 'Weekly Induction – Monday 12 PM',
+    subject: 'Induction Doubt-Clearing Call – Monday 12 PM',
     body: {
       contentType: 'HTML',
-      content: `<p>Welcome to your induction session! This is your weekly Monday meeting with Gunjan and your fellow new joiners.</p>
-<p>Please visit the <a href="${DASHBOARD_URL}/employee">Induction Dashboard</a> before the call.</p>`,
+      content: `<p>This is your optional weekly doubt-clearing call with Gunjan — join if you have anything left unresolved from your induction materials, or want to talk something through live.</p>
+<p>No need to attend if you don't have any open questions. Review your materials and quizzes on the <a href="${DASHBOARD_URL}/employee">Induction Dashboard</a> beforehand.</p>`,
     },
     start: { dateTime: slot.start, timeZone: 'India Standard Time' },
     end:   { dateTime: slot.end,   timeZone: 'India Standard Time' },
