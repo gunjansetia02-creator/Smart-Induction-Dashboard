@@ -7,7 +7,14 @@ const DASHBOARD_URL = process.env.DASHBOARD_URL ?? 'https://induction-dashboard.
 function getNextMondayISO(): { date: string; start: string; end: string } {
   const now  = new Date()
   const day  = now.getDay()
-  const daysUntil = day === 1 ? 0 : (8 - day) % 7
+  let daysUntil = day === 1 ? 0 : (8 - day) % 7
+  // A joiner starting Thu–Sun would otherwise land a doubt-clearing call only
+  // 1–3 days out, before they've had a real chance to review any material —
+  // push to the following Monday instead. Must match daysUntilNextMonday() in
+  // welcome-email.ts so the email text and the actual invite agree. Monday
+  // itself (day === 1) is left alone: that's today's own session, not a
+  // future one to reschedule.
+  if (day !== 1 && daysUntil < 4) daysUntil += 7
   const monday = new Date(now)
   monday.setDate(now.getDate() + daysUntil)
 

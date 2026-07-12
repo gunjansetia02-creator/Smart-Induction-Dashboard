@@ -3,11 +3,21 @@ import { graphPost } from './graph-client'
 const HR_EMAIL     = process.env.HR_EMAIL     ?? 'Gunjan.setia@koenig-solutions.com'
 const DASHBOARD_URL = process.env.DASHBOARD_URL ?? 'https://induction-dashboard.vercel.app'
 
+// A joiner who starts Thu–Sun would otherwise be pointed at a doubt-clearing
+// call only 1–3 days out, before they've had a real chance to review any
+// material. If the immediate next Monday is that close, skip to the one
+// after instead — this must match getNextMondayISO() in meeting-invite.ts,
+// since that's what actually creates the Teams event.
+function daysUntilNextMonday(): number {
+  const day = new Date().getDay()  // 0=Sun … 6=Sat
+  let days = day === 1 ? 7 : (8 - day) % 7 || 7
+  if (days < 4) days += 7
+  return days
+}
+
 function nextMonday(): string {
   const d = new Date()
-  const day = d.getDay()           // 0=Sun … 6=Sat
-  const daysUntil = day === 1 ? 7 : (8 - day) % 7 || 7
-  d.setDate(d.getDate() + daysUntil)
+  d.setDate(d.getDate() + daysUntilNextMonday())
   return d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
@@ -39,25 +49,26 @@ function buildEmailHtml(name: string, email: string): string {
             <p style="margin:0 0 20px;font-size:17px;color:#1B2D50;font-weight:600;">Welcome aboard, ${firstName}! 🎉</p>
 
             <p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.7;">
-              We're thrilled to have you join the Koenig family. Your induction is self-paced through the
-              <strong>Smart Induction Dashboard</strong> — review your materials whenever suits you, and reach
-              out anytime you have a question.
+              We're thrilled to have you join the Koenig family. To get you up to speed quickly, HR has designed
+              a structured <strong>one-week Smart Induction Programme</strong>, run entirely through your
+              personal Induction Dashboard. You're expected to complete it — every material and its quiz —
+              within your first week.
             </p>
 
             <!-- Quick-start callout -->
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
               <tr>
                 <td style="background:#F4F8FD;border:1px solid #D0E7F8;border-radius:8px;padding:14px 16px;">
-                  <p style="margin:0;font-size:12px;color:#1B2D50;font-weight:700;letter-spacing:0.3px;">📋 QUICK START</p>
+                  <p style="margin:0;font-size:12px;color:#1B2D50;font-weight:700;letter-spacing:0.3px;">📋 YOUR WEEK AT A GLANCE</p>
                   <p style="margin:6px 0 0;font-size:13px;color:#374151;line-height:1.6;">
-                    Review each material → Pass its quiz (70%+) → Ask doubts anytime → Induction complete.
+                    Review each material → Pass its quiz (70%+) → Ask doubts anytime → Induction complete within 7 days.
                   </p>
                 </td>
               </tr>
             </table>
 
             <p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.7;">
-              Here's how it works:
+              Here's exactly what's expected of you:
             </p>
 
             <!-- Steps -->
@@ -65,7 +76,7 @@ function buildEmailHtml(name: string, email: string): string {
               <tr>
                 <td style="padding:10px 0;border-bottom:1px solid #EDF1F7;">
                   <span style="display:inline-block;background:#D0E7F8;color:#1B2D50;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:10px;">TODAY</span>
-                  <span style="font-size:13px;color:#374151;">Open your Induction Dashboard and start reviewing your materials, one by one, in the order they're listed.</span>
+                  <span style="font-size:13px;color:#374151;">Open your Induction Dashboard — the first time you log in, it'll walk you through each tab so you know exactly what to do. Then start reviewing your materials, one by one, in the order they're listed.</span>
                 </td>
               </tr>
               <tr>
@@ -94,13 +105,19 @@ function buildEmailHtml(name: string, email: string): string {
               </tr>
             </table>
 
-            <!-- CTA -->
-            <p style="margin:28px 0 8px;text-align:center;">
-              <a href="${dashboardLink}"
-                 style="display:inline-block;background:#1B2D50;color:#ffffff;font-size:14px;font-weight:600;padding:14px 36px;border-radius:8px;text-decoration:none;letter-spacing:0.3px;">
-                Open Your Induction Dashboard →
-              </a>
-            </p>
+            <!-- CTA (table-based "bulletproof" button — a plain styled <a> with
+                 display:inline-block can silently lose its href/background in
+                 Outlook's Word rendering engine) -->
+            <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:28px auto 8px;">
+              <tr>
+                <td bgcolor="#1B2D50" style="border-radius:8px;mso-padding-alt:14px 36px;">
+                  <a href="${dashboardLink}" target="_blank"
+                     style="display:inline-block;padding:14px 36px;font-family:'Segoe UI',Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.3px;">
+                    Open Your Induction Dashboard →
+                  </a>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
 

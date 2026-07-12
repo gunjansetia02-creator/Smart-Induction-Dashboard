@@ -4,6 +4,7 @@ import { Home } from '@/components/employee/Home'
 import { Materials } from '@/components/employee/Materials'
 import { BatchChannel } from '@/components/employee/BatchChannel'
 import { EmpDoubt } from '@/components/employee/EmpDoubt'
+import { WelcomeGuideModal } from '@/components/employee/WelcomeGuideModal'
 import { markJoinerLogin } from '@/lib/data/mark-login'
 
 const TABS = ['home', 'materials', 'batch', 'doubt'] as const
@@ -24,10 +25,12 @@ export default async function EmployeePage({
   const { tab: rawTab, email } = await searchParams
   const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? '') ? (rawTab as Tab) : 'home'
 
-  if (email) markJoinerLogin(email).catch(() => {})
+  const isFirstVisit = email ? await markJoinerLogin(email).catch(() => false) : false
 
   return (
     <Shell isHR={false} activeTab={tab === 'home' ? '' : tab}>
+      {isFirstVisit && <WelcomeGuideModal />}
+
       {/* Tab bar */}
       <div className="flex border-b border-bdr mb-5 -mt-1">
         {TABS.map((key) => (
