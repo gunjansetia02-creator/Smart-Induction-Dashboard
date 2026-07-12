@@ -26,6 +26,17 @@ function statusPill(s: JoinerStatus) {
   return <Pill variant="red">Not Started</Pill>
 }
 
+// Real induction status, derived from actual material/doubt completion —
+// never from days-since-DOJ, which showed "100% complete" for people who
+// hadn't opened a single material.
+function statusFromEntry(s: JoinerStatusEntry | undefined): JoinerStatus {
+  if (!s) return 'not-started'
+  if (s.inductionComplete) return 'complete'
+  if (s.openDoubts > 0) return 'needs-nudge'
+  if (s.materialsPercent > 0) return 'in-progress'
+  return 'not-started'
+}
+
 function StatusChips({ s }: { s: JoinerStatusEntry | undefined }) {
   if (!s) return <div className="text-[10px] text-faint mt-2">Loading status…</div>
   return (
@@ -57,12 +68,19 @@ export function ProfilesClient({
   error?: string
   hrEmail: string
 }) {
-  const [range, setRange] = useState<DateRange>(null)
-  const [rangeLabel, setRangeLabel] = useState('All Time')
+  // 'pending' until DateRangeFilter's mount effect supplies the real default
+  // range. Must NOT compute a Date-based range here: that runs during SSR too,
+  // and the server (UTC on Vercel) and the client (the visitor's local time)
+  // can disagree on which joiners fall in range, corrupting hydration for the
+  // whole list. 'pending' keeps the first render identical on both sides and
+  // — as a bonus — avoids ever rendering the full unfiltered 500+ joiner list.
+  const [range, setRange] = useState<DateRange | 'pending'>('pending')
+  const [rangeLabel, setRangeLabel] = useState('Loading…')
   const [statuses, setStatuses] = useState<Record<string, JoinerStatusEntry>>({})
   const [selected, setSelected] = useState<Joiner | null>(null)
 
   const filtered = useMemo(() => {
+    if (range === 'pending') return []
     if (!range) return joiners
     return joiners.filter(j => {
       const d = new Date(j.doj)
@@ -94,7 +112,9 @@ export function ProfilesClient({
         <div>
           <div className="text-[14px] font-bold text-navy">New Joiner Profiles</div>
           <div className="text-[12px] text-muted mt-0.5">
-            {filtered.length} joiner{filtered.length !== 1 ? 's' : ''} · {rangeLabel} · {live ? 'Live data from PMS' : 'Demo data (PMS unreachable)'}
+            {range === 'pending'
+              ? 'Loading…'
+              : `${filtered.length} joiner${filtered.length !== 1 ? 's' : ''} · ${rangeLabel} · ${live ? 'Live data from PMS' : 'Demo data (PMS unreachable)'}`}
           </div>
         </div>
         <div className="flex gap-2">
@@ -108,28 +128,34 @@ export function ProfilesClient({
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {range === 'pending' ? (
+        <div className="text-center py-16 text-muted text-[13px]">Loading joiners…</div>
+      ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-muted text-[13px]">No joiners match this date range.</div>
       ) : (
         <div className="grid gap-[14px]" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
-          {filtered.map((j) => (
-            <div
-              key={j.id}
-              onClick={() => setSelected(j)}
-              className="bg-white border border-bdr rounded-[10px] shadow-[0_1px_2px_rgba(16,24,40,0.04),0_1px_3px_rgba(16,24,40,0.06)] p-5 flex flex-col items-center text-center cursor-pointer hover:shadow-[0_4px_10px_rgba(16,24,40,0.08)] hover:-translate-y-[2px] transition-all"
-            >
-              <div className="mb-3">
-                <ProgressRing value={j.progress} color={ringColor(j.status)} size={70} />
+          {filtered.map((j) => {
+            const s = statuses[j.email]
+            const displayStatus = statusFromEntry(s)
+            return (
+              <div
+                key={j.id}
+                onClick={() => setSelected(j)}
+                className="bg-white border border-bdr rounded-[10px] shadow-[0_1px_2px_rgba(16,24,40,0.04),0_1px_3px_rgba(16,24,40,0.06)] p-5 flex flex-col items-center text-center cursor-pointer hover:shadow-[0_4px_10px_rgba(16,24,40,0.08)] hover:-translate-y-[2px] transition-all"
+              >
+                <div className="mb-3">
+                  <ProgressRing value={s ? s.materialsPercent : 0} color={s ? ringColor(displayStatus) : '#C7D0DE'} size={70} />
+                </div>
+                <div className="text-[13px] font-bold text-navy mb-0.5">{j.name}</div>
+                <div className="text-[11.5px] text-muted mb-2.5">{j.designation}</div>
+                {s ? statusPill(displayStatus) : <Pill variant="grey">Loading…</Pill>}
+                <div className="text-[11px] text-faint mt-2" title={`Date of Joining: ${j.joinedDate}`}>
+                  DOJ: {j.joinedDate} · {s ? `${s.materialsComplete}/${s.materialsTotal}` : '…'} materials
+                </div>
+                <StatusChips s={s} />
               </div>
-              <div className="text-[13px] font-bold text-navy mb-0.5">{j.name}</div>
-              <div className="text-[11.5px] text-muted mb-2.5">{j.designation}</div>
-              {statusPill(j.status)}
-              <div className="text-[11px] text-faint mt-2" title={`Date of Joining: ${j.joinedDate}`}>
-                DOJ: {j.joinedDate} · {j.videosWatched}/{j.totalVideos} videos
-              </div>
-              <StatusChips s={statuses[j.email]} />
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

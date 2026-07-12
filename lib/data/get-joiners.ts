@@ -12,17 +12,6 @@ function fmtDate(d: Date) {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
-function daysSince(d: Date) {
-  return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86_400_000))
-}
-
-function deriveStatus(days: number): { progress: number; status: JoinerStatus } {
-  if (days >= 5) return { progress: 100, status: 'complete' }
-  if (days >= 3) return { progress: 75,  status: 'in-progress' }
-  if (days >= 1) return { progress: 40,  status: 'in-progress' }
-  return           { progress: 0,   status: 'not-started' }
-}
-
 function currentMonthBounds() {
   const now   = new Date()
   const start = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -58,22 +47,24 @@ async function fetchMapped(withinDays: number): Promise<MappedJoiner[]> {
       const doj    = parseDOJ(emp['DOJ'])!
       const name   = emp['Name']!.trim()
       const email  = emp['Office Email'] ?? emp['Personal Email'] ?? ''
-      const days   = daysSince(doj)
-      const { progress, status } = deriveStatus(days)
 
       return {
         _doj:          doj,
-        id:            String(emp['Emp Code'] ?? i + 1),
+        // Index-suffixed: some PMS records share an Emp Code (rehires), and a
+        // duplicate id as a React list key silently breaks reconciliation.
+        id:            `${emp['Emp Code'] ?? 'x'}-${i}`,
         name,
         initials:      initials(name),
         designation:   emp['Designation'] ?? 'Employee',
         dept:          emp['Department'] ?? emp['Designation'] ?? 'Koenig Solutions',
         doj:           doj.toISOString().substring(0, 10),
         joinedDate:    fmtDate(doj),
-        videosWatched: Math.round((progress / 100) * 4),
-        totalVideos:   4,
-        progress,
-        status,
+        // Real progress/status come from Supabase (see getJoinerStatuses) — these
+        // placeholder fields are never rendered, kept only to satisfy the Joiner type.
+        videosWatched: 0,
+        totalVideos:   0,
+        progress:      0,
+        status:        'not-started' as JoinerStatus,
         inviteStatus:  'pending' as InviteStatus,
         emailStatus:   (email ? 'delivered' : 'bounced') as 'delivered' | 'bounced',
         email,
@@ -132,5 +123,18 @@ export async function getThisWeekJoiners(): Promise<Joiner[]> {
     return all.filter(j => j._doj >= start && j._doj <= end)
   } catch {
     return mockJoiners
+  }
+}
+
+// Same as getThisWeekJoiners, but also reports whether the data is really live from PMS
+export async function getThisWeekJoinersWithStatus(): Promise<{ joiners: Joiner[]; live: boolean; error?: string }> {
+  try {
+    const { start, end } = currentWeekBounds()
+    const all = await fetchMapped(14)
+    return { joiners: all.filter(j => j._doj >= start && j._doj <= end), live: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('[PMS Error] Failed to fetch this week\'s joiners:', message)
+    return { joiners: mockJoiners, live: false, error: message }
   }
 }

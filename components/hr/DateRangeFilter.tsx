@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 export type DateRange = { from: Date; to: Date } | null
 
-type PresetKey = '7d' | '14d' | '21d' | '30d' | 'all' | 'custom'
+export type PresetKey = '7d' | '14d' | '21d' | '30d' | 'all' | 'custom'
 
 const PRESETS: { key: PresetKey; label: string; shortLabel: string; days?: number }[] = [
   { key: '7d',  label: 'Last 7 Days',  shortLabel: '7D',  days: 7  },
@@ -16,6 +16,7 @@ const PRESETS: { key: PresetKey; label: string; shortLabel: string; days?: numbe
 
 function startOfDay(d: Date) { const c = new Date(d); c.setHours(0, 0, 0, 0); return c }
 function endOfDay(d: Date)   { const c = new Date(d); c.setHours(23, 59, 59, 999); return c }
+
 
 export function DateRangeFilter({
   onChange,

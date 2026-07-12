@@ -1,20 +1,13 @@
 import { Card } from '@/components/ui/Card'
-import { Pill } from '@/components/ui/Pill'
-import { thisWeekJoiners, collaterals } from '@/lib/mock-data'
-import type { InviteStatus, EmailStatus } from '@/lib/types'
+import { collaterals } from '@/lib/mock-data'
+import { getThisWeekJoinersWithStatus } from '@/lib/data/get-joiners'
+import { getJoinerStatuses } from '@/lib/data/get-joiner-statuses'
+import { SchedulerClient } from './SchedulerClient'
 
-function invitePill(s: InviteStatus) {
-  if (s === 'accepted')    return <Pill variant="green">Accepted</Pill>
-  if (s === 'pending')     return <Pill variant="amber">Pending</Pill>
-  return <Pill variant="red">No Response</Pill>
-}
+export async function Scheduler() {
+  const { joiners, live } = await getThisWeekJoinersWithStatus()
+  const statuses = await getJoinerStatuses(joiners.map(j => j.email))
 
-function emailPill(s: EmailStatus) {
-  if (s === 'delivered') return <Pill variant="green">Delivered</Pill>
-  return <Pill variant="red">Bounced</Pill>
-}
-
-export function Scheduler() {
   return (
     <div>
       {/* Session Banner */}
@@ -38,48 +31,9 @@ export function Scheduler() {
       {/* Two-col */}
       <div className="grid grid-cols-[1fr_280px] gap-[18px]">
         {/* Attendees */}
-        <Card title="Attendees · 5 New Joiners" noPad
-          action={
-            <button className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">
-              Resend All
-            </button>
-          }
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  {['Name','Email','Dept','Teams Invite','Welcome Email',''].map((h, i) => (
-                    <th key={i} className="px-[13px] py-[9px] text-left text-[10.5px] font-bold tracking-[0.6px] uppercase text-faint bg-ground border-b border-bdr whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {thisWeekJoiners.map((j) => (
-                  <tr key={j.id} className="hover:bg-[#F7FAFD]">
-                    <td className="px-[13px] py-[11px] text-[13px] border-b border-ground"><strong>{j.name}</strong></td>
-                    <td className="px-[13px] py-[11px] text-[12px] text-muted border-b border-ground">{j.email}</td>
-                    <td className="px-[13px] py-[11px] text-[13px] border-b border-ground">{j.dept}</td>
-                    <td className="px-[13px] py-[11px] border-b border-ground">{invitePill(j.inviteStatus)}</td>
-                    <td className="px-[13px] py-[11px] border-b border-ground">{emailPill(j.emailStatus)}</td>
-                    <td className="px-[13px] py-[11px] border-b border-ground">
-                      {j.inviteStatus === 'pending' && (
-                        <button className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">
-                          Resend
-                        </button>
-                      )}
-                      {j.emailStatus === 'bounced' && (
-                        <button className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-kred-dim text-red-700 rounded cursor-pointer hover:opacity-85">
-                          Fix Email
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <Card title={`Attendees · ${joiners.length} New Joiner${joiners.length !== 1 ? 's' : ''} This Week`} noPad>
+          <div className="px-[13px] pt-[11px]">
+            <SchedulerClient joiners={joiners} live={live} initialStatuses={statuses} />
           </div>
         </Card>
 
