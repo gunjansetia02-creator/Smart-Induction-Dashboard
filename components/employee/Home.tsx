@@ -1,5 +1,8 @@
 import { Card } from '@/components/ui/Card'
 import { Pill } from '@/components/ui/Pill'
+import { getJoinerStatuses } from '@/lib/data/get-joiner-statuses'
+import type { Joiner } from '@/lib/types'
+import { DEMO_EMPLOYEE_EMAIL, DEMO_EMPLOYEE_NAME } from './Materials'
 
 const batchmates = [
   { initials: 'SP', name: 'Sneha Patel',  role: 'Finance',   color: '#27B882' },
@@ -8,20 +11,48 @@ const batchmates = [
   { initials: 'RG', name: 'Rohan Gupta',  role: 'Sales',     color: '#1B2D50' },
 ]
 
-const checklist = [
-  { label: 'Open your Induction Dashboard',  done: true,  active: false, badge: null },
-  { label: 'Join the batch channel on Teams',done: true,  active: false, badge: null },
-  { label: 'Introduce yourself to the batch',done: true,  active: false, badge: null },
-  { label: 'Watch all induction materials',  done: false, active: true,  badge: { text: '2 / 4',  variant: 'blue' as const } },
-  { label: 'Pass each quiz (70%+)',          done: false, active: false, badge: { text: '0 / 4',  variant: 'grey' as const } },
-]
-
-const PROGRESS = 60
 const R = 37
 const CIRC = 2 * Math.PI * R
-const OFFSET = CIRC * (1 - PROGRESS / 100)
 
-export function Home() {
+// Same "push late-week joiners to the following Monday" rule as
+// lib/automation/welcome-email.ts, so the date shown here matches what was
+// emailed and what the real Teams invite is for.
+function nextMondayLabel(): string {
+  const d = new Date()
+  const day = d.getDay()
+  let days = day === 1 ? 7 : (8 - day) % 7 || 7
+  if (days < 4) days += 7
+  d.setDate(d.getDate() + days)
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+}
+
+export async function Home({
+  employeeEmail = DEMO_EMPLOYEE_EMAIL,
+  employeeName = DEMO_EMPLOYEE_NAME,
+  joiner,
+}: {
+  employeeEmail?: string
+  employeeName?: string
+  joiner?: Joiner | null
+} = {}) {
+  const statuses = await getJoinerStatuses([employeeEmail])
+  const s = statuses[employeeEmail]
+
+  const firstName = employeeName.split(' ')[0]
+  const progress = s?.materialsPercent ?? 0
+  const offset = CIRC * (1 - progress / 100)
+  const materialsLabel = s ? `${s.materialsComplete} / ${s.materialsTotal}` : '0 / 0'
+  const materialsDone = s ? s.materialsComplete === s.materialsTotal && s.materialsTotal > 0 : false
+  const openDoubts = s?.openDoubts ?? 0
+  const materialsBadgeVariant: 'green' | 'blue' = materialsDone ? 'green' : 'blue'
+
+  const checklist = [
+    { label: 'Open your Induction Dashboard',  done: true,  active: false, badge: null },
+    { label: 'Join the batch channel on Teams',done: true,  active: false, badge: null },
+    { label: 'Introduce yourself to the batch',done: true,  active: false, badge: null },
+    { label: 'Complete all materials & quizzes (70%+)', done: materialsDone, active: !materialsDone, badge: { text: materialsLabel, variant: materialsBadgeVariant } },
+  ]
+
   return (
     <div>
       {/* Hero */}
@@ -32,31 +63,33 @@ export function Home() {
             <circle fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={6} cx={43} cy={43} r={R} />
             <circle fill="none" stroke="#4A9BE8" strokeWidth={6} strokeLinecap="round"
               cx={43} cy={43} r={R}
-              strokeDasharray={CIRC} strokeDashoffset={OFFSET}
+              strokeDasharray={CIRC} strokeDashoffset={offset}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[20px] font-extrabold text-white tabular leading-none">{PROGRESS}%</span>
+            <span className="text-[20px] font-extrabold text-white tabular leading-none">{progress}%</span>
             <span className="text-[9px] text-white/50 tracking-[0.7px] uppercase mt-0.5">done</span>
           </div>
         </div>
 
         {/* Text */}
         <div>
-          <h2 className="text-[17px] font-extrabold text-white mb-1">Welcome, Arjun!</h2>
+          <h2 className="text-[17px] font-extrabold text-white mb-1">Welcome, {firstName}!</h2>
           <p className="text-[13px] text-white/65 mb-2.5">
-            You&apos;re 60% through your induction. Keep going — you&apos;re nearly there.
+            {materialsDone
+              ? "You've completed your induction. Nicely done!"
+              : `You're ${progress}% through your induction. Keep going.`}
           </p>
           <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold"
             style={{ background: 'rgba(74,155,232,0.2)', color: '#93D0FF' }}>
-            Sales · Joined 23 Jun 2025
+            {joiner ? `${joiner.designation} · Joined ${joiner.joinedDate}` : 'New Joiner'}
           </span>
         </div>
 
         {/* Date chips */}
         <div className="ml-auto flex flex-col gap-[9px] items-end">
           {[
-            { label: 'Doubt-Clearing Call (Optional)', date: 'Mon 30 Jun · 12 PM' },
+            { label: 'Doubt-Clearing Call (Optional)', date: `Mon ${nextMondayLabel()} · 12 PM` },
           ].map((d) => (
             <div key={d.label}
               className="rounded-[4px] py-[7px] px-[13px] text-right"
@@ -114,8 +147,10 @@ export function Home() {
 
           <div className="bg-navy border border-navy rounded-[5px] p-[15px_17px]">
             <div className="text-[11px] text-white/50 tracking-[0.6px] uppercase mb-1">My Flagged Doubts</div>
-            <div className="text-[30px] font-extrabold text-white tabular mb-1">1</div>
-            <div className="text-[12.5px] text-white/60 mb-3">Sent to HR — reply pending, or raise it on Monday&apos;s call</div>
+            <div className="text-[30px] font-extrabold text-white tabular mb-1">{openDoubts}</div>
+            <div className="text-[12.5px] text-white/60 mb-3">
+              {openDoubts > 0 ? "Sent to HR — reply pending, or raise it on Monday's call" : 'Nothing open right now'}
+            </div>
             <button className="w-full px-[10px] py-[5px] text-[11.5px] font-semibold rounded cursor-pointer hover:opacity-85"
               style={{ background: 'rgba(255,255,255,0.12)', color: '#fff' }}>
               View My Doubt

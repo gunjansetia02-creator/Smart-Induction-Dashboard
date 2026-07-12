@@ -16,15 +16,21 @@ interface DoubtQuestion {
   materials?: { title: string }
 }
 
-export function EmpDoubt() {
+export function EmpDoubt({
+  employeeEmail = DEMO_EMPLOYEE_EMAIL,
+  employeeName = DEMO_EMPLOYEE_NAME,
+}: {
+  employeeEmail?: string
+  employeeName?: string
+} = {}) {
   const [questions, setQuestions] = useState<DoubtQuestion[] | null>(null)
 
   useEffect(() => {
-    fetch(`/api/materials/questions/mine?employeeEmail=${encodeURIComponent(DEMO_EMPLOYEE_EMAIL)}`)
+    fetch(`/api/materials/questions/mine?employeeEmail=${encodeURIComponent(employeeEmail)}`)
       .then(r => r.json())
       .then(d => setQuestions(d.questions ?? []))
       .catch(() => setQuestions([]))
-  }, [])
+  }, [employeeEmail])
 
   return (
     <div className="grid grid-cols-[1fr_320px] gap-[18px]">
@@ -58,7 +64,7 @@ export function EmpDoubt() {
         </div>
       </Card>
 
-      <BookSession employeeEmail={DEMO_EMPLOYEE_EMAIL} employeeName={DEMO_EMPLOYEE_NAME} />
+      <BookSession employeeEmail={employeeEmail} employeeName={employeeName} />
     </div>
   )
 }

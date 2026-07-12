@@ -6,6 +6,7 @@ import { BatchChannel } from '@/components/employee/BatchChannel'
 import { EmpDoubt } from '@/components/employee/EmpDoubt'
 import { WelcomeGuideModal } from '@/components/employee/WelcomeGuideModal'
 import { markJoinerLogin } from '@/lib/data/mark-login'
+import { getJoinerByEmail } from '@/lib/data/get-joiners'
 
 const TABS = ['home', 'materials', 'batch', 'doubt'] as const
 type Tab = typeof TABS[number]
@@ -25,35 +26,47 @@ export default async function EmployeePage({
   const { tab: rawTab, email } = await searchParams
   const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? '') ? (rawTab as Tab) : 'home'
 
-  const isFirstVisit = email ? await markJoinerLogin(email).catch(() => false) : false
+  const [isFirstVisit, joiner] = await Promise.all([
+    email ? markJoinerLogin(email).catch(() => false) : Promise.resolve(false),
+    email ? getJoinerByEmail(email) : Promise.resolve(null),
+  ])
+  const employeeEmail = email || undefined
+  const employeeName = joiner?.name || undefined
 
   return (
     <Shell isHR={false} activeTab={tab === 'home' ? '' : tab}>
       {isFirstVisit && <WelcomeGuideModal />}
 
-      {/* Tab bar */}
+      {/* Tab bar — carries ?email= across tabs so a real joiner's identity
+          doesn't get lost the moment they navigate away from Home */}
       <div className="flex border-b border-bdr mb-5 -mt-1">
-        {TABS.map((key) => (
-          <Link
-            key={key}
-            href={key === 'home' ? '/employee' : `/employee?tab=${key}`}
-            prefetch
-            className={[
-              'px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px no-underline transition-colors',
-              tab === key
-                ? 'text-navy border-sky font-bold'
-                : 'text-muted border-transparent hover:text-navy',
-            ].join(' ')}
-          >
-            {TAB_LABELS[key]}
-          </Link>
-        ))}
+        {TABS.map((key) => {
+          const params = new URLSearchParams()
+          if (key !== 'home') params.set('tab', key)
+          if (email) params.set('email', email)
+          const qs = params.toString()
+          return (
+            <Link
+              key={key}
+              href={qs ? `/employee?${qs}` : '/employee'}
+              prefetch
+              className={[
+                'px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px no-underline transition-colors',
+                tab === key
+                  ? 'text-navy border-sky font-bold'
+                  : 'text-muted border-transparent hover:text-navy',
+              ].join(' ')}
+            >
+              {TAB_LABELS[key]}
+            </Link>
+          )
+        })}
       </div>
 
-      {tab === 'home'      && <Home />}
-      {tab === 'materials' && <Materials />}
+      {tab === 'home'      && <Home employeeEmail={employeeEmail} employeeName={employeeName} joiner={joiner} />}
+      {tab === 'materials' && <Materials employeeEmail={employeeEmail} employeeName={employeeName} />}
       {tab === 'batch'     && <BatchChannel />}
-      {tab === 'doubt'     && <EmpDoubt />}
+      {tab === 'doubt'     && <EmpDoubt employeeEmail={employeeEmail} employeeName={employeeName} />}
     </Shell>
   )
 }

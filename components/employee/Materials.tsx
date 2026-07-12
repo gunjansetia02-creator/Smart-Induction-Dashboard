@@ -1,12 +1,19 @@
 import { supabase } from '@/lib/supabase'
 import { MaterialsListClient, type EmployeeMaterial } from './MaterialsListClient'
 
-// No real login system yet — this demo view represents Arjun Kapoor, matching the
-// mock joiner data used elsewhere in the HR Admin views.
+// Fallback identity for HR's "Employee View" preview toggle, which has no
+// real joiner behind it — real joiners are identified via ?email= on their
+// personalized dashboard link (see app/employee/page.tsx).
 export const DEMO_EMPLOYEE_EMAIL = 'arjun.k@koenig.com'
 export const DEMO_EMPLOYEE_NAME = 'Arjun Kapoor'
 
-export async function Materials() {
+export async function Materials({
+  employeeEmail = DEMO_EMPLOYEE_EMAIL,
+  employeeName = DEMO_EMPLOYEE_NAME,
+}: {
+  employeeEmail?: string
+  employeeName?: string
+} = {}) {
   const { data: materials, error } = await supabase
     .from('materials')
     .select('*')
@@ -27,8 +34,8 @@ export async function Materials() {
 
   const materialIds = materials.map(m => m.id)
   const [{ data: progress }, { data: questions }, { data: quizQuestions }] = await Promise.all([
-    supabase.from('material_progress').select('*').eq('employee_email', DEMO_EMPLOYEE_EMAIL).in('material_id', materialIds),
-    supabase.from('material_questions').select('*').eq('employee_email', DEMO_EMPLOYEE_EMAIL).in('material_id', materialIds).order('created_at', { ascending: true }),
+    supabase.from('material_progress').select('*').eq('employee_email', employeeEmail).in('material_id', materialIds),
+    supabase.from('material_questions').select('*').eq('employee_email', employeeEmail).in('material_id', materialIds).order('created_at', { ascending: true }),
     supabase.from('material_quiz_questions').select('id, material_id').in('material_id', materialIds),
   ])
 
@@ -70,8 +77,8 @@ export async function Materials() {
       </div>
       <MaterialsListClient
         materials={enriched}
-        employeeEmail={DEMO_EMPLOYEE_EMAIL}
-        employeeName={DEMO_EMPLOYEE_NAME}
+        employeeEmail={employeeEmail}
+        employeeName={employeeName}
       />
     </div>
   )

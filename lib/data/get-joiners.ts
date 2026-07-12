@@ -82,6 +82,20 @@ async function fetchMapped(withinDays: number): Promise<MappedJoiner[]> {
     .sort((a, b) => b._doj.getTime() - a._doj.getTime())
 }
 
+// Looks up a single real employee by email (any tenure, not just recent
+// joiners) — used to personalize the employee dashboard for whoever's actual
+// link (?email=...) they clicked, instead of showing hardcoded demo data.
+export async function getJoinerByEmail(email: string): Promise<Joiner | null> {
+  if (!email) return null
+  try {
+    const all = await fetchMapped(3650)
+    const target = email.trim().toLowerCase()
+    return all.find(j => j.email.toLowerCase() === target) ?? null
+  } catch {
+    return null
+  }
+}
+
 // Joiners from last N days — falls back to mock if PMS is unreachable
 export async function getRecentJoiners(withinDays = 60): Promise<Joiner[]> {
   try {
