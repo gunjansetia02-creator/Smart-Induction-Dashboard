@@ -8,6 +8,8 @@ import { WelcomeGuideModal } from '@/components/employee/WelcomeGuideModal'
 import { markJoinerLogin } from '@/lib/data/mark-login'
 import { getJoinerByEmail } from '@/lib/data/get-joiners'
 
+const HR_EMAIL = process.env.HR_EMAIL ?? 'Gunjan.setia@koenig-solutions.com'
+
 const TABS = ['home', 'materials', 'batch', 'doubt'] as const
 type Tab = typeof TABS[number]
 
@@ -26,12 +28,16 @@ export default async function EmployeePage({
   const { tab: rawTab, email } = await searchParams
   const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? '') ? (rawTab as Tab) : 'home'
 
-  const [isFirstVisit, joiner] = await Promise.all([
+  const [firstLoginResult, joiner] = await Promise.all([
     email ? markJoinerLogin(email).catch(() => false) : Promise.resolve(false),
     email ? getJoinerByEmail(email) : Promise.resolve(null),
   ])
   const employeeEmail = email || undefined
   const employeeName = joiner?.name || undefined
+  // HR's own address always sees the tour, for repeat testing — real joiners
+  // only get it once, the moment their first_login_at is actually set.
+  const isTestAccount = email?.toLowerCase() === HR_EMAIL.toLowerCase()
+  const isFirstVisit = isTestAccount || firstLoginResult
 
   return (
     <Shell isHR={false} activeTab={tab === 'home' ? '' : tab}>
