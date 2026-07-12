@@ -44,6 +44,9 @@ function StatusChips({ s }: { s: JoinerStatusEntry | undefined }) {
       <span className={`text-[9.5px] font-semibold px-1.5 py-[2px] rounded ${s.welcomeEmailSent ? 'bg-kgreen-dim text-emerald-700' : 'bg-ground text-faint'}`}>
         ✉️ {s.welcomeEmailSent ? 'Invited' : 'No Invite'}
       </span>
+      <span className={`text-[9.5px] font-semibold px-1.5 py-[2px] rounded ${s.loggedIn ? 'bg-kgreen-dim text-emerald-700' : 'bg-kamber-dim text-amber-800'}`}>
+        🔑 {s.loggedIn ? 'Logged In' : 'Not Yet'}
+      </span>
       <span className="text-[9.5px] font-semibold px-1.5 py-[2px] rounded bg-sky-dim text-blue-700">
         🎬 {s.materialsPercent}%
       </span>

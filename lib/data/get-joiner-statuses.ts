@@ -8,6 +8,7 @@ export interface JoinerStatusEntry {
   totalDoubts: number
   welcomeEmailSent: boolean
   meetingInviteSent: boolean
+  loggedIn: boolean
   inductionComplete: boolean
 }
 
@@ -20,12 +21,21 @@ export async function getJoinerStatuses(emails: string[]): Promise<Record<string
   const clean = emails.filter(Boolean)
   if (clean.length === 0) return {}
 
-  const [{ count: materialsTotal }, { data: progress }, { data: questions }, { data: comms }] = await Promise.all([
+  // Fetch these tables in full rather than filtering with .in('employee_email', clean):
+  // with 500+ real joiners, that filter serializes into a URL long enough to fail
+  // silently (the client here doesn't check `error`), which was returning empty
+  // results for every joiner. These tables only ever hold one row per joiner
+  // interaction, so an unfiltered select stays small.
+  const [{ count: materialsTotal }, { data: progress, error: progressErr }, { data: questions, error: questionsErr }, { data: comms, error: commsErr }] = await Promise.all([
     supabase.from('materials').select('id', { count: 'exact', head: true }),
-    supabase.from('material_progress').select('employee_email, status').in('employee_email', clean),
-    supabase.from('material_questions').select('employee_email, resolved').in('employee_email', clean),
-    supabase.from('joiner_communications').select('*').in('employee_email', clean),
+    supabase.from('material_progress').select('employee_email, status'),
+    supabase.from('material_questions').select('employee_email, resolved'),
+    supabase.from('joiner_communications').select('*'),
   ])
+
+  if (progressErr) console.error('[getJoinerStatuses] material_progress error:', progressErr.message)
+  if (questionsErr) console.error('[getJoinerStatuses] material_questions error:', questionsErr.message)
+  if (commsErr) console.error('[getJoinerStatuses] joiner_communications error:', commsErr.message)
 
   const total = materialsTotal ?? 0
   const statuses: Record<string, JoinerStatusEntry> = {}
@@ -46,6 +56,7 @@ export async function getJoinerStatuses(emails: string[]): Promise<Record<string
       totalDoubts: myQuestions.length,
       welcomeEmailSent: Boolean(myComms?.welcome_email_sent_at),
       meetingInviteSent: Boolean(myComms?.meeting_invite_sent_at),
+      loggedIn: Boolean(myComms?.first_login_at),
       inductionComplete: total > 0 && materialsComplete === total && openDoubts === 0,
     }
   }

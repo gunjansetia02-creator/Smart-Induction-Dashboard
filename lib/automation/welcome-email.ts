@@ -11,9 +11,10 @@ function nextMonday(): string {
   return d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-function buildEmailHtml(name: string): string {
+function buildEmailHtml(name: string, email: string): string {
   const firstName = name.split(' ')[0]
   const monday    = nextMonday()
+  const dashboardLink = `${DASHBOARD_URL}/employee?email=${encodeURIComponent(email)}`
 
   return `
 <!DOCTYPE html>
@@ -81,7 +82,7 @@ function buildEmailHtml(name: string): string {
 
             <!-- CTA -->
             <p style="margin:28px 0 8px;text-align:center;">
-              <a href="${DASHBOARD_URL}/employee"
+              <a href="${dashboardLink}"
                  style="display:inline-block;background:#1B2D50;color:#ffffff;font-size:14px;font-weight:600;padding:14px 36px;border-radius:8px;text-decoration:none;letter-spacing:0.3px;">
                 Open Your Induction Dashboard →
               </a>
@@ -115,7 +116,7 @@ export interface NewJoiner {
 }
 
 export async function sendWelcomeEmail(joiner: NewJoiner): Promise<void> {
-  const html = buildEmailHtml(joiner.name)
+  const html = buildEmailHtml(joiner.name, joiner.email)
 
   const payload = {
     message: {

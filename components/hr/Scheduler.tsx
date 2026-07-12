@@ -1,11 +1,13 @@
 import { Card } from '@/components/ui/Card'
 import { collaterals } from '@/lib/mock-data'
-import { getThisWeekJoinersWithStatus } from '@/lib/data/get-joiners'
+import { getRecentJoinersWithStatus } from '@/lib/data/get-joiners'
 import { getJoinerStatuses } from '@/lib/data/get-joiner-statuses'
 import { SchedulerClient } from './SchedulerClient'
 
 export async function Scheduler() {
-  const { joiners, live } = await getThisWeekJoinersWithStatus()
+  // Fetch a wide window so the client-side date filter (7/14/21/30/custom) can
+  // switch instantly without a server round-trip, same pattern as Profiles.
+  const { joiners, live } = await getRecentJoinersWithStatus(3650)
   const statuses = await getJoinerStatuses(joiners.map(j => j.email))
 
   return (
@@ -31,7 +33,7 @@ export async function Scheduler() {
       {/* Two-col */}
       <div className="grid grid-cols-[1fr_280px] gap-[18px]">
         {/* Attendees */}
-        <Card title={`Attendees · ${joiners.length} New Joiner${joiners.length !== 1 ? 's' : ''} This Week`} noPad>
+        <Card title="Attendees" noPad>
           <div className="px-[13px] pt-[11px]">
             <SchedulerClient joiners={joiners} live={live} initialStatuses={statuses} />
           </div>

@@ -4,6 +4,7 @@ import { Home } from '@/components/employee/Home'
 import { Materials } from '@/components/employee/Materials'
 import { BatchChannel } from '@/components/employee/BatchChannel'
 import { EmpDoubt } from '@/components/employee/EmpDoubt'
+import { markJoinerLogin } from '@/lib/data/mark-login'
 
 const TABS = ['home', 'materials', 'batch', 'doubt'] as const
 type Tab = typeof TABS[number]
@@ -18,10 +19,12 @@ const TAB_LABELS: Record<Tab, string> = {
 export default async function EmployeePage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; email?: string }>
 }) {
-  const { tab: rawTab } = await searchParams
+  const { tab: rawTab, email } = await searchParams
   const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? '') ? (rawTab as Tab) : 'home'
+
+  if (email) markJoinerLogin(email).catch(() => {})
 
   return (
     <Shell isHR={false} activeTab={tab === 'home' ? '' : tab}>

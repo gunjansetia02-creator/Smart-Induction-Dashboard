@@ -52,6 +52,10 @@ export function JoinerDetailModal({
                 {status.meetingInviteSent ? <Pill variant="green">Sent</Pill> : <Pill variant="grey">Not Sent</Pill>}
               </div>
               <div className="bg-ground rounded-[6px] p-2.5">
+                <div className="text-[10.5px] text-muted mb-1">Dashboard Login</div>
+                {status.loggedIn ? <Pill variant="green">Logged In</Pill> : <Pill variant="amber">Not Yet</Pill>}
+              </div>
+              <div className="bg-ground rounded-[6px] p-2.5">
                 <div className="text-[10.5px] text-muted mb-1">Materials</div>
                 <span className="text-[13px] font-bold text-navy">{status.materialsComplete}/{status.materialsTotal}</span>
                 <span className="text-[11px] text-muted"> ({status.materialsPercent}%)</span>
