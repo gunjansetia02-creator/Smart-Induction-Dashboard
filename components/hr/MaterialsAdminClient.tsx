@@ -96,7 +96,13 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
         headers: { 'Content-Type': file.type || 'application/octet-stream' },
         body: file,
       })
-      if (!putRes.ok) throw new Error('Upload to storage failed')
+      if (!putRes.ok) {
+        const reason = await putRes.json().catch(() => null)
+        if (reason?.message?.includes('maximum allowed size')) {
+          throw new Error(`This file is too large for the current storage limit (${(file.size / 1024 / 1024).toFixed(0)}MB). Ask Gunjan to raise the max file size in Supabase project settings.`)
+        }
+        throw new Error(reason?.message ?? `Upload to storage failed (${putRes.status})`)
+      }
 
       setForm(f => ({ ...f, url: urlData.publicUrl }))
       setUploadedFilename(file.name)
