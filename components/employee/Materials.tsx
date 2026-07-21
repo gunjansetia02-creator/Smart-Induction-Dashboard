@@ -18,6 +18,7 @@ export async function Materials({
     .from('materials')
     .select('*')
     .order('day', { ascending: true, nullsFirst: false })
+    .order('sort_order', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true })
 
   if (error) {
@@ -57,6 +58,7 @@ export async function Materials({
     url: m.url,
     duration: m.duration,
     day: m.day,
+    subject: m.subject,
     status: progressByMaterial.get(m.id)?.status ?? 'not-started',
     watchedPercent: progressByMaterial.get(m.id)?.watched_percent ?? 0,
     lastPosition: progressByMaterial.get(m.id)?.last_position_seconds ?? 0,

@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
     .from('materials')
     .select('*')
     .order('day', { ascending: true, nullsFirst: false })
+    .order('sort_order', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { title?: string; description?: string; type?: string; url?: string; duration?: string; day?: number | null }
+  let body: { title?: string; description?: string; type?: string; url?: string; duration?: string; day?: number | null; subject?: string | null; sortOrder?: number | null }
   try {
     body = await req.json()
   } catch {
@@ -64,6 +65,8 @@ export async function POST(req: NextRequest) {
       url: body.url,
       duration: body.duration ?? null,
       day: body.day ?? null,
+      subject: body.subject ?? null,
+      sort_order: body.sortOrder ?? null,
     })
     .select()
     .single()

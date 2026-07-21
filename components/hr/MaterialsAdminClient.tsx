@@ -12,9 +12,11 @@ type FormState = {
   url: string
   duration: string
   day: string // kept as string for the input; '' = no day assigned
+  subject: string // groups this material with others sharing the same (day, subject)
+  sortOrder: string // kept as string for the input; '' = no explicit order
 }
 
-const EMPTY_FORM: FormState = { title: '', description: '', type: 'video', url: '', duration: '', day: '' }
+const EMPTY_FORM: FormState = { title: '', description: '', type: 'video', url: '', duration: '', day: '', subject: '', sortOrder: '' }
 
 interface EscalatedQuestion {
   id: string
@@ -65,6 +67,8 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
       url: m.url,
       duration: m.duration ?? '',
       day: m.day === null ? '' : String(m.day),
+      subject: m.subject ?? '',
+      sortOrder: m.sort_order === null ? '' : String(m.sort_order),
     })
     setUrlMode('link')
     setUploadError(null)
@@ -130,6 +134,8 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
         url: form.url.trim(),
         duration: form.duration.trim() || null,
         day: form.day.trim() === '' ? null : Number(form.day),
+        subject: form.subject.trim() || null,
+        sortOrder: form.sortOrder.trim() === '' ? null : Number(form.sortOrder),
       }
 
       const res = form.id
@@ -168,6 +174,26 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
   for (const m of materials) {
     const key = m.day === null ? 'General / Anytime' : `Day ${m.day}`
     grouped.set(key, [...(grouped.get(key) ?? []), m])
+  }
+
+  // Within a day, materials sharing a subject render clubbed under one
+  // sub-heading — mirrors how the employee "My Materials" view groups them.
+  function subgroupBySubject(dayItems: AdminMaterial[]) {
+    const subgroups: { key: string; subject: string | null; items: AdminMaterial[] }[] = []
+    const indexBySubject = new Map<string, number>()
+    for (const m of dayItems) {
+      if (m.subject) {
+        const idx = indexBySubject.get(m.subject)
+        if (idx !== undefined) subgroups[idx].items.push(m)
+        else {
+          indexBySubject.set(m.subject, subgroups.length)
+          subgroups.push({ key: m.subject, subject: m.subject, items: [m] })
+        }
+      } else {
+        subgroups.push({ key: m.id, subject: null, items: [m] })
+      }
+    }
+    return subgroups
   }
 
   return (
@@ -210,24 +236,33 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
         Array.from(grouped.entries()).map(([groupLabel, items]) => (
           <div key={groupLabel} className="mb-5">
             <div className="text-[11px] font-bold tracking-[0.6px] uppercase text-faint mb-2">{groupLabel}</div>
-            <div className="flex flex-col gap-2">
-              {items.map(m => (
-                <div key={m.id} className="bg-white border border-bdr rounded-[5px] p-4 flex items-start gap-3">
-                  <div className="w-[36px] h-[36px] rounded-[4px] bg-ground flex items-center justify-center text-[16px] flex-shrink-0">{typeIcon(m.type)}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13.5px] font-bold text-navy">{m.title}</div>
-                    {m.description && <div className="text-[12px] text-muted mt-0.5">{m.description}</div>}
-                    <div className="flex items-center gap-3 text-[11px] text-faint mt-1.5">
-                      <span>{m.type === 'pdf' ? 'PDF' : 'Video'}{m.duration ? ` · ${m.duration}` : ''}</span>
-                      <span>· {m.learnersComplete}/{m.learnersStarted || 0} completed</span>
-                      {m.openQuestions > 0 && <span className="text-kamber font-semibold">· {m.openQuestions} open question{m.openQuestions !== 1 ? 's' : ''}</span>}
-                      <span className={m.quizCount > 0 ? 'text-sky' : ''}>· {m.quizCount > 0 ? `${m.quizCount} quiz Qs` : 'no quiz'}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-1.5 flex-shrink-0">
-                    <button onClick={() => setQuizManagerFor(m)} className="px-[9px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">Quiz</button>
-                    <button onClick={() => openEdit(m)} className="px-[9px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">Edit</button>
-                    <button onClick={() => handleDelete(m.id)} className="px-[9px] py-[5px] text-[11.5px] font-semibold bg-kred-dim text-red-700 rounded cursor-pointer hover:opacity-85">Delete</button>
+            <div className="flex flex-col gap-3">
+              {subgroupBySubject(items).map(sg => (
+                <div key={sg.key} className={sg.subject ? 'bg-ground rounded-[6px] p-2' : ''}>
+                  {sg.subject && (
+                    <div className="text-[11px] font-bold text-navy px-2 pb-1.5">📁 {sg.subject}</div>
+                  )}
+                  <div className="flex flex-col gap-2">
+                    {sg.items.map(m => (
+                      <div key={m.id} className="bg-white border border-bdr rounded-[5px] p-4 flex items-start gap-3">
+                        <div className="w-[36px] h-[36px] rounded-[4px] bg-ground flex items-center justify-center text-[16px] flex-shrink-0">{typeIcon(m.type)}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13.5px] font-bold text-navy">{m.title}</div>
+                          {m.description && <div className="text-[12px] text-muted mt-0.5">{m.description}</div>}
+                          <div className="flex items-center gap-3 text-[11px] text-faint mt-1.5">
+                            <span>{m.type === 'pdf' ? 'PDF' : 'Video'}{m.duration ? ` · ${m.duration}` : ''}</span>
+                            <span>· {m.learnersComplete}/{m.learnersStarted || 0} completed</span>
+                            {m.openQuestions > 0 && <span className="text-kamber font-semibold">· {m.openQuestions} open question{m.openQuestions !== 1 ? 's' : ''}</span>}
+                            <span className={m.quizCount > 0 ? 'text-sky' : ''}>· {m.quizCount > 0 ? `${m.quizCount} quiz Qs` : 'no quiz'}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-1.5 flex-shrink-0">
+                          <button onClick={() => setQuizManagerFor(m)} className="px-[9px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">Quiz</button>
+                          <button onClick={() => openEdit(m)} className="px-[9px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">Edit</button>
+                          <button onClick={() => handleDelete(m.id)} className="px-[9px] py-[5px] text-[11.5px] font-semibold bg-kred-dim text-red-700 rounded cursor-pointer hover:opacity-85">Delete</button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -303,10 +338,22 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
                   </div>
                 )}
               </div>
+              <div className="flex gap-3">
+                <label className="text-[12px] text-muted flex flex-col gap-1">
+                  Day <span className="text-faint">(optional)</span>
+                  <input type="number" min={1} value={form.day} onChange={e => setForm(f => ({ ...f, day: e.target.value }))}
+                    className="border border-bdr rounded px-2.5 py-1.5 text-[13px] w-[100px]" placeholder="e.g. 1" />
+                </label>
+                <label className="text-[12px] text-muted flex flex-col gap-1">
+                  Order within day <span className="text-faint">(optional)</span>
+                  <input type="number" min={1} value={form.sortOrder} onChange={e => setForm(f => ({ ...f, sortOrder: e.target.value }))}
+                    className="border border-bdr rounded px-2.5 py-1.5 text-[13px] w-[100px]" placeholder="e.g. 1" />
+                </label>
+              </div>
               <label className="text-[12px] text-muted flex flex-col gap-1">
-                Day <span className="text-faint">(optional — leave blank if it doesn't need a specific day)</span>
-                <input type="number" min={1} value={form.day} onChange={e => setForm(f => ({ ...f, day: e.target.value }))}
-                  className="border border-bdr rounded px-2.5 py-1.5 text-[13px] w-[100px]" placeholder="e.g. 1" />
+                Subject <span className="text-faint">(optional — groups this with others under one heading, e.g. "Onboarding")</span>
+                <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
+                  className="border border-bdr rounded px-2.5 py-1.5 text-[13px]" placeholder="e.g. Onboarding" />
               </label>
             </div>
             <div className="p-4 border-t border-ground flex justify-end gap-2">

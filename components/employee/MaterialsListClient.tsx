@@ -24,6 +24,9 @@ export interface EmployeeMaterial {
   url: string
   duration: string | null
   day: number | null
+  // Materials sharing the same (day, subject) render clubbed under one
+  // heading, e.g. "Onboarding" grouping a PPT + its explainer video.
+  subject: string | null
   status: 'not-started' | 'in-progress' | 'complete' | 'has-doubt'
   watchedPercent: number
   lastPosition: number
@@ -331,6 +334,27 @@ export function MaterialsListClient({
     grouped.set(key, [...(grouped.get(key) ?? []), m])
   }
 
+  // Within a day, materials sharing a subject (e.g. "Onboarding" for a PPT +
+  // its explainer video) render clubbed under one heading. Materials with no
+  // subject become their own singleton group, rendered without extra heading.
+  function subgroupBySubject(dayItems: EmployeeMaterial[]) {
+    const subgroups: { key: string; subject: string | null; items: EmployeeMaterial[] }[] = []
+    const indexBySubject = new Map<string, number>()
+    for (const m of dayItems) {
+      if (m.subject) {
+        const idx = indexBySubject.get(m.subject)
+        if (idx !== undefined) subgroups[idx].items.push(m)
+        else {
+          indexBySubject.set(m.subject, subgroups.length)
+          subgroups.push({ key: m.subject, subject: m.subject, items: [m] })
+        }
+      } else {
+        subgroups.push({ key: m.id, subject: null, items: [m] })
+      }
+    }
+    return subgroups
+  }
+
   return (
     <div>
       <div className="flex items-center gap-4 bg-white border border-bdr rounded-[6px] p-4 mb-4">
@@ -386,17 +410,28 @@ export function MaterialsListClient({
         Array.from(grouped.entries()).map(([groupLabel, groupItems]) => (
           <div key={groupLabel} className="mb-5">
             <div className="text-[11px] font-bold tracking-[0.6px] uppercase text-faint mb-2">{groupLabel}</div>
-            <div className="bg-white border border-bdr rounded-[5px] px-[17px]">
-              {groupItems.map(m => (
-                <MaterialRow
-                  key={m.id}
-                  material={m}
-                  employeeEmail={employeeEmail}
-                  employeeName={employeeName}
-                  isOpen={openId === m.id}
-                  onToggleOpen={() => setOpenId(prev => (prev === m.id ? null : m.id))}
-                  onUpdate={patch => updateMaterial(m.id, patch)}
-                />
+            <div className="flex flex-col gap-3">
+              {subgroupBySubject(groupItems).map(sg => (
+                <div key={sg.key} className="bg-white border border-bdr rounded-[5px] overflow-hidden">
+                  {sg.subject && (
+                    <div className="px-[17px] py-2 bg-ground border-b border-bdr text-[12px] font-bold text-navy">
+                      {sg.subject}
+                    </div>
+                  )}
+                  <div className="px-[17px]">
+                    {sg.items.map(m => (
+                      <MaterialRow
+                        key={m.id}
+                        material={m}
+                        employeeEmail={employeeEmail}
+                        employeeName={employeeName}
+                        isOpen={openId === m.id}
+                        onToggleOpen={() => setOpenId(prev => (prev === m.id ? null : m.id))}
+                        onUpdate={patch => updateMaterial(m.id, patch)}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>

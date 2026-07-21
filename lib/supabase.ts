@@ -32,6 +32,10 @@ export interface MaterialRow {
   url: string
   duration: string | null
   day: number | null
+  // Materials sharing the same (day, subject) are shown clubbed together under
+  // one heading in the employee view, e.g. "Onboarding" grouping a PPT + video.
+  subject: string | null
+  sort_order: number | null
   created_at: string
 }
 

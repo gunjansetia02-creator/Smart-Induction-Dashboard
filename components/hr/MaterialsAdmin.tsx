@@ -9,6 +9,8 @@ export interface AdminMaterial {
   url: string
   duration: string | null
   day: number | null
+  subject: string | null
+  sort_order: number | null
   created_at: string
   learnersStarted: number
   learnersComplete: number
@@ -21,6 +23,7 @@ export async function MaterialsAdmin() {
     .from('materials')
     .select('*')
     .order('day', { ascending: true, nullsFirst: false })
+    .order('sort_order', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true })
 
   if (error) {
