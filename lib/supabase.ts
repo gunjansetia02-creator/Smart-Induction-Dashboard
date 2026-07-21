@@ -56,6 +56,8 @@ export interface MaterialQuestionRow {
   employee_name: string | null
   question: string
   ai_answer: string | null
+  hr_answer: string | null
+  hr_answered_at: string | null
   resolved: boolean
   escalated: boolean
   created_at: string

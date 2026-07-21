@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { answerMaterialQuestion, aiConfigured } from '@/lib/ai-answer'
+import { notifyHRNewDoubt } from '@/lib/automation/doubt-email'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -65,5 +66,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Only escalated questions need Gunjan's own answer — don't email her for
+  // every AI-handled question, only ones that actually land in her queue.
+  if (escalated) {
+    notifyHRNewDoubt({
+      employeeEmail: body.employeeEmail,
+      employeeName: body.employeeName ?? null,
+      materialTitle: material.title,
+      question: body.question,
+      aiAttempted: aiConfigured(),
+    }).catch(e => console.error('[Doubt Email] Failed to notify HR:', e instanceof Error ? e.message : String(e)))
+  }
+
   return NextResponse.json({ question: data, aiAvailable: aiConfigured() }, { status: 201 })
 }

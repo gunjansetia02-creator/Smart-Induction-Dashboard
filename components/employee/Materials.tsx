@@ -67,6 +67,7 @@ export async function Materials({
       id: q.id,
       question: q.question,
       aiAnswer: q.ai_answer,
+      hrAnswer: q.hr_answer,
       resolved: q.resolved,
       escalated: q.escalated,
     })),

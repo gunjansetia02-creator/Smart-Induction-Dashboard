@@ -12,6 +12,7 @@ export interface EmployeeQuestion {
   id: string
   question: string
   aiAnswer: string | null
+  hrAnswer: string | null
   resolved: boolean
   escalated: boolean
 }
@@ -79,6 +80,7 @@ function MaterialRow({
   const [videoError, setVideoError] = useState(false)
   const [faq, setFaq] = useState<{ id: string; question: string; ai_answer: string }[] | null>(null)
   const [quizOpen, setQuizOpen] = useState(false)
+  const [ackedHrAnswers, setAckedHrAnswers] = useState<Set<string>>(new Set())
 
   const videoSource = material.type === 'video' ? detectVideoSource(material.url) : null
   const hasQuiz = material.quizCount > 0
@@ -130,7 +132,7 @@ function MaterialRow({
       if (res.ok) {
         const nextStatus = material.status === 'not-started' ? 'in-progress' : material.status
         onUpdate({
-          questions: [...material.questions, { id: data.question.id, question: data.question.question, aiAnswer: data.question.ai_answer, resolved: data.question.resolved, escalated: data.question.escalated }],
+          questions: [...material.questions, { id: data.question.id, question: data.question.question, aiAnswer: data.question.ai_answer, hrAnswer: data.question.hr_answer ?? null, resolved: data.question.resolved, escalated: data.question.escalated }],
           status: nextStatus,
         })
         if (nextStatus !== material.status) {
@@ -258,24 +260,43 @@ function MaterialRow({
           {material.questions.length > 0 && (
             <div className="flex flex-col gap-2.5 mb-3">
               <div className="text-[10.5px] font-bold tracking-[0.6px] uppercase text-faint">Your Questions</div>
-              {material.questions.map(q => (
-                <div key={q.id} className="bg-white rounded-[4px] p-2.5 border border-bdr">
-                  <div className="text-[12.5px] text-navy font-medium">Q: {q.question}</div>
-                  {q.aiAnswer ? (
-                    <div className="text-[12px] text-muted mt-1.5">🤖 {q.aiAnswer}</div>
-                  ) : (
-                    <div className="text-[12px] text-kamber mt-1.5">Sent straight to HR — AI assistant isn&apos;t set up yet.</div>
-                  )}
-                  {q.aiAnswer && !q.resolved && (
-                    <div className="flex gap-1.5 mt-2">
-                      <button onClick={() => markQuestionResolved(q.id, true)} className="px-[8px] py-[3px] text-[11px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">👍 This helped</button>
-                      <button onClick={() => markQuestionResolved(q.id, false)} className="px-[8px] py-[3px] text-[11px] font-semibold bg-kred-dim text-red-700 rounded cursor-pointer hover:opacity-85">Still need help</button>
-                    </div>
-                  )}
-                  {q.escalated && !q.resolved && <div className="text-[11px] text-kamber mt-1.5">⚠️ Escalated to HR</div>}
-                  {q.resolved && <div className="text-[11px] text-kgreen mt-1.5">✓ Resolved</div>}
-                </div>
-              ))}
+              {material.questions.map(q => {
+                const acked = ackedHrAnswers.has(q.id)
+                return (
+                  <div key={q.id} className="bg-white rounded-[4px] p-2.5 border border-bdr">
+                    <div className="text-[12.5px] text-navy font-medium">Q: {q.question}</div>
+
+                    {q.hrAnswer ? (
+                      <div className="mt-1.5 bg-kgreen-dim rounded-[4px] p-2 text-[12px] text-navy">
+                        <strong>Gunjan&apos;s answer:</strong> {q.hrAnswer}
+                      </div>
+                    ) : q.aiAnswer ? (
+                      <div className="text-[12px] text-muted mt-1.5">🤖 {q.aiAnswer}</div>
+                    ) : (
+                      <div className="text-[12px] text-kamber mt-1.5">Sent straight to HR — AI assistant isn&apos;t set up yet.</div>
+                    )}
+
+                    {/* AI answered, not yet reacted to */}
+                    {q.aiAnswer && !q.hrAnswer && !q.resolved && (
+                      <div className="flex gap-1.5 mt-2">
+                        <button onClick={() => markQuestionResolved(q.id, true)} className="px-[8px] py-[3px] text-[11px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">👍 This helped</button>
+                        <button onClick={() => markQuestionResolved(q.id, false)} className="px-[8px] py-[3px] text-[11px] font-semibold bg-kred-dim text-red-700 rounded cursor-pointer hover:opacity-85">Still need help</button>
+                      </div>
+                    )}
+
+                    {/* Gunjan answered directly — offer a call if that's still not enough */}
+                    {q.hrAnswer && !acked && (
+                      <div className="flex gap-1.5 mt-2">
+                        <button onClick={() => setAckedHrAnswers(prev => new Set(prev).add(q.id))} className="px-[8px] py-[3px] text-[11px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">👍 Got it, thanks!</button>
+                        <a href="/employee?tab=doubt" className="px-[8px] py-[3px] text-[11px] font-semibold bg-sky text-white rounded no-underline hover:opacity-85">📞 Still stuck? Book a 1:1 Call</a>
+                      </div>
+                    )}
+
+                    {q.escalated && !q.resolved && <div className="text-[11px] text-kamber mt-1.5">⚠️ Escalated to HR — Gunjan will reply soon</div>}
+                    {q.resolved && !q.hrAnswer && <div className="text-[11px] text-kgreen mt-1.5">✓ Resolved</div>}
+                  </div>
+                )
+              })}
             </div>
           )}
           <div className="flex gap-2">

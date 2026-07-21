@@ -138,6 +138,7 @@ function DoubtCard({ d, onAnswered }: { d: DoubtQuestion; onAnswered: (id: strin
 export function DoubtSession() {
   const [questions, setQuestions] = useState<DoubtQuestion[] | null>(null)
   const [bookings, setBookings] = useState<BookingRequest[] | null>(null)
+  const [stats, setStats] = useState<{ total: number; aiHandled: number } | null>(null)
 
   useEffect(() => {
     fetch('/api/materials/questions?all=true')
@@ -149,6 +150,11 @@ export function DoubtSession() {
       .then(r => r.json())
       .then(d => setBookings(d.bookings ?? []))
       .catch(() => setBookings([]))
+
+    fetch('/api/materials/questions/stats')
+      .then(r => r.json())
+      .then(d => setStats({ total: d.total ?? 0, aiHandled: d.aiHandled ?? 0 }))
+      .catch(() => setStats(null))
   }, [])
 
   function removeBooking(id: string) {
@@ -199,8 +205,10 @@ export function DoubtSession() {
         <Card title="Summary">
           <div className="grid grid-cols-2 gap-[10px]">
             {[
-              { val: pending.length, lbl: 'Pending' },
-              { val: answered.length, lbl: 'Answered' },
+              { val: stats?.total ?? '—', lbl: 'Total Asked' },
+              { val: stats?.aiHandled ?? '—', lbl: 'AI Handled' },
+              { val: pending.length, lbl: 'Pending (you)' },
+              { val: answered.length, lbl: 'Answered (you)' },
             ].map((s) => (
               <div key={s.lbl} className="bg-ground rounded-[4px] p-3 text-center">
                 <div className="text-[22px] font-extrabold text-navy tabular">{s.val}</div>
