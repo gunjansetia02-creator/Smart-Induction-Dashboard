@@ -40,6 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         materialTitle: material.title,
         materialDescription: material.description,
         materialType: material.type,
+        materialContent: material.content_text,
         question: body.question,
       })
     } catch (e) {

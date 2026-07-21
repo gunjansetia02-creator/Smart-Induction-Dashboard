@@ -36,6 +36,9 @@ export interface MaterialRow {
   // one heading in the employee view, e.g. "Onboarding" grouping a PPT + video.
   subject: string | null
   sort_order: number | null
+  // Full extracted document text, used to ground the AI's answers instead of
+  // just the short description — set manually per material as HR provides it.
+  content_text: string | null
   created_at: string
 }
 

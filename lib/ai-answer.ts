@@ -5,19 +5,37 @@ export function aiConfigured(): boolean {
   return Boolean(ANTHROPIC_API_KEY)
 }
 
+// Capped well under the model's context window — this is per-question, so it
+// stays cheap and fast even for the longer documents (e.g. Kites-G).
+const MAX_CONTENT_CHARS = 12000
+
 export async function answerMaterialQuestion(opts: {
   materialTitle: string
   materialDescription: string
   materialType: 'video' | 'pdf'
+  materialContent?: string | null
   question: string
 }): Promise<string> {
   if (!ANTHROPIC_API_KEY) {
     throw new Error('ANTHROPIC_API_KEY is not set')
   }
 
-  const system = `You are the induction assistant for new employees at Koenig Solutions. An employee is going through their onboarding material and asked a question about it. Answer helpfully and concisely (2-4 sentences) using only the material's title and description as context. If the material's description doesn't contain enough information to answer confidently, say so plainly and suggest they escalate the question to HR — do not make up specifics you don't know.`
+  const hasFullContent = Boolean(opts.materialContent && opts.materialContent.trim())
 
-  const userMessage = `Material: "${opts.materialTitle}" (${opts.materialType})
+  const system = hasFullContent
+    ? `You are the induction assistant for new employees at Koenig Solutions. An employee asked a question about one of their induction materials. Answer helpfully and concisely (2-4 sentences) using ONLY the full document content provided below — it is the actual text of the material. If the answer genuinely isn't in the document, say so plainly and suggest they escalate the question to HR — do not make up specifics that aren't there.`
+    : `You are the induction assistant for new employees at Koenig Solutions. An employee is going through their onboarding material and asked a question about it. Answer helpfully and concisely (2-4 sentences) using only the material's title and description as context. If the material's description doesn't contain enough information to answer confidently, say so plainly and suggest they escalate the question to HR — do not make up specifics you don't know.`
+
+  const userMessage = hasFullContent
+    ? `Material: "${opts.materialTitle}" (${opts.materialType})
+
+Full document content:
+"""
+${opts.materialContent!.slice(0, MAX_CONTENT_CHARS)}
+"""
+
+Employee question: ${opts.question}`
+    : `Material: "${opts.materialTitle}" (${opts.materialType})
 Description: ${opts.materialDescription || '(no description provided)'}
 
 Employee question: ${opts.question}`
