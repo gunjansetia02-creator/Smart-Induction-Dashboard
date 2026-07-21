@@ -71,7 +71,7 @@ export default async function EmployeePage({
 
       {tab === 'home'      && <Home employeeEmail={employeeEmail} employeeName={employeeName} joiner={joiner} />}
       {tab === 'materials' && <Materials employeeEmail={employeeEmail} employeeName={employeeName} />}
-      {tab === 'batch'     && <BatchChannel />}
+      {tab === 'batch'     && <BatchChannel joiner={joiner} />}
       {tab === 'doubt'     && <EmpDoubt employeeEmail={employeeEmail} employeeName={employeeName} />}
     </Shell>
   )

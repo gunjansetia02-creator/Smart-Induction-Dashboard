@@ -1,15 +1,12 @@
+import Link from 'next/link'
 import { Card } from '@/components/ui/Card'
 import { Pill } from '@/components/ui/Pill'
 import { getJoinerStatuses } from '@/lib/data/get-joiner-statuses'
+import { getBatchmates } from '@/lib/data/get-batchmates'
 import type { Joiner } from '@/lib/types'
 import { DEMO_EMPLOYEE_EMAIL, DEMO_EMPLOYEE_NAME } from './Materials'
 
-const batchmates = [
-  { initials: 'SP', name: 'Sneha Patel',  role: 'Finance',   color: '#27B882' },
-  { initials: 'DS', name: 'Dev Sharma',   role: 'IT',        color: '#F4A622' },
-  { initials: 'KN', name: 'Kavya Nair',   role: 'Marketing', color: '#E85A4A' },
-  { initials: 'RG', name: 'Rohan Gupta',  role: 'Sales',     color: '#1B2D50' },
-]
+const AVATAR_COLORS = ['#4A9BE8', '#27B882', '#F4A622', '#E85A4A', '#1B2D50', '#6B7A99']
 
 const R = 37
 const CIRC = 2 * Math.PI * R
@@ -35,7 +32,10 @@ export async function Home({
   employeeName?: string
   joiner?: Joiner | null
 } = {}) {
-  const statuses = await getJoinerStatuses([employeeEmail])
+  const [statuses, batchmates] = await Promise.all([
+    getJoinerStatuses([employeeEmail]),
+    joiner ? getBatchmates(joiner, 4) : Promise.resolve([]),
+  ])
   const s = statuses[employeeEmail]
 
   const firstName = employeeName.split(' ')[0]
@@ -127,21 +127,23 @@ export async function Home({
 
         <div className="flex flex-col gap-4">
           <Card title="My Batch">
-            <p className="text-[12px] text-muted mb-2.5">5 people joined with you this week</p>
+            <p className="text-[12px] text-muted mb-2.5">
+              {batchmates.length > 0 ? `${batchmates.length} other${batchmates.length !== 1 ? 's' : ''} joined around the same time` : 'No one else joined within 10 days of you yet'}
+            </p>
             <div className="flex flex-col gap-2">
-              {batchmates.map((b) => (
-                <div key={b.initials} className="flex items-center gap-2.5 text-[13px]">
+              {batchmates.map((b, i) => (
+                <div key={b.id} className="flex items-center gap-2.5 text-[13px]">
                   <div className="w-[25px] h-[25px] rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
-                    style={{ background: b.color }}>
+                    style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>
                     {b.initials}
                   </div>
                   <span>{b.name}</span>
-                  <span className="text-muted text-[11.5px]">{b.role}</span>
+                  <span className="text-muted text-[11.5px]">{b.designation}</span>
                 </div>
               ))}
             </div>
-            <button className="mt-3 w-full px-[10px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85">
-              Open Teams Channel
+            <button disabled title="Not connected yet — ask HR" className="mt-3 w-full px-[10px] py-[5px] text-[11.5px] font-semibold bg-ground text-faint border border-bdr rounded cursor-not-allowed">
+              Open Teams Channel (Coming Soon)
             </button>
           </Card>
 
@@ -151,10 +153,10 @@ export async function Home({
             <div className="text-[12.5px] text-white/60 mb-3">
               {openDoubts > 0 ? "Sent to HR — reply pending, or raise it on Monday's call" : 'Nothing open right now'}
             </div>
-            <button className="w-full px-[10px] py-[5px] text-[11.5px] font-semibold rounded cursor-pointer hover:opacity-85"
+            <Link href={joiner ? `/employee?tab=doubt&email=${encodeURIComponent(joiner.email)}` : '/employee?tab=doubt'} className="block text-center w-full px-[10px] py-[5px] text-[11.5px] font-semibold rounded cursor-pointer hover:opacity-85 no-underline"
               style={{ background: 'rgba(255,255,255,0.12)', color: '#fff' }}>
-              View My Doubt
-            </button>
+              View My Doubts
+            </Link>
           </div>
         </div>
       </div>
