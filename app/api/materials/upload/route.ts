@@ -1,38 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-const MAX_BYTES = 4 * 1024 * 1024 // 4MB — stays safely under Vercel's serverless request-body limit
-
+// Generates a signed Supabase Storage upload URL instead of accepting the file
+// body directly — Vercel serverless functions cap request bodies around 4.5MB,
+// so any real video would fail there regardless of what limit we set. The
+// browser uploads the actual file bytes straight to Supabase Storage using the
+// signed URL below, bypassing this function (and its size limit) entirely.
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
 }
 
 export async function POST(req: NextRequest) {
-  const formData = await req.formData()
-  const file = formData.get('file')
-
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: 'No file provided' }, { status: 422 })
+  const body = await req.json().catch(() => null)
+  const filename = body?.filename
+  if (typeof filename !== 'string' || !filename) {
+    return NextResponse.json({ error: 'filename is required' }, { status: 422 })
   }
 
-  if (file.size > MAX_BYTES) {
-    return NextResponse.json(
-      { error: `File is ${(file.size / 1024 / 1024).toFixed(1)}MB — the max for direct upload is 4MB. For larger files, host it elsewhere (e.g. Google Drive, SharePoint) and paste the link instead.` },
-      { status: 413 }
-    )
+  const path = `${Date.now()}-${sanitizeFilename(filename)}`
+
+  const { data, error } = await supabase.storage.from('materials').createSignedUploadUrl(path)
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const path = `${Date.now()}-${sanitizeFilename(file.name)}`
-  const buffer = Buffer.from(await file.arrayBuffer())
+  const { data: publicUrlData } = supabase.storage.from('materials').getPublicUrl(path)
 
-  const { error: uploadError } = await supabase.storage
-    .from('materials')
-    .upload(path, buffer, { contentType: file.type || 'application/octet-stream', upsert: false })
-
-  if (uploadError) {
-    return NextResponse.json({ error: uploadError.message }, { status: 500 })
-  }
-
-  const { data } = supabase.storage.from('materials').getPublicUrl(path)
-  return NextResponse.json({ url: data.publicUrl, filename: file.name })
+  return NextResponse.json({
+    signedUrl: data.signedUrl,
+    path,
+    publicUrl: publicUrlData.publicUrl,
+    filename,
+  })
 }

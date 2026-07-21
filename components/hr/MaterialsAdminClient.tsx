@@ -78,13 +78,28 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
     setUploading(true)
     setUploadError(null)
     try {
-      const body = new FormData()
-      body.append('file', file)
-      const res = await fetch('/api/materials/upload', { method: 'POST', body })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Upload failed')
-      setForm(f => ({ ...f, url: data.url }))
-      setUploadedFilename(data.filename ?? file.name)
+      // Step 1: ask the server for a signed upload URL (tiny JSON request —
+      // the file itself never passes through our Next.js function, so there's
+      // no Vercel body-size ceiling on how large it can be).
+      const urlRes = await fetch('/api/materials/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name }),
+      })
+      const urlData = await urlRes.json()
+      if (!urlRes.ok) throw new Error(urlData.error ?? 'Upload failed')
+
+      // Step 2: upload the actual file bytes directly from the browser to
+      // Supabase Storage using that signed URL.
+      const putRes = await fetch(urlData.signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      })
+      if (!putRes.ok) throw new Error('Upload to storage failed')
+
+      setForm(f => ({ ...f, url: urlData.publicUrl }))
+      setUploadedFilename(file.name)
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed')
     } finally {
@@ -270,11 +285,10 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
                   <div>
                     <input
                       type="file"
-                      accept={form.type === 'pdf' ? '.pdf,.doc,.docx' : 'video/*'}
                       onChange={handleFileChange}
                       className="text-[12.5px]"
                     />
-                    <div className="text-faint text-[11px] mt-1">Max 4MB. For bigger files, host elsewhere and paste a link instead.</div>
+                    <div className="text-faint text-[11px] mt-1">Any file type or size — larger files just take longer to upload.</div>
                     {uploading && <div className="text-sky text-[11.5px] mt-1">Uploading…</div>}
                     {uploadError && <div className="text-red-600 text-[11.5px] mt-1">{uploadError}</div>}
                     {!uploading && !uploadError && uploadedFilename && (
