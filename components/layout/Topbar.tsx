@@ -6,6 +6,7 @@ const hrTitles: Record<string, string> = {
   profiles:    'New Joiner Profiles',
   materials:   'Induction Materials',
   doubt:       'Doubt Session',
+  feedback:    'Employee Feedback',
 }
 
 const empTitles: Record<string, string> = {

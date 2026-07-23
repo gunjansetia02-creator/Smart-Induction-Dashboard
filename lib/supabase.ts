@@ -65,3 +65,13 @@ export interface MaterialQuestionRow {
   escalated: boolean
   created_at: string
 }
+
+// Private HR-only notes about a joiner's induction progress — never shown to
+// the employee.
+export interface JoinerFeedbackRow {
+  id: string
+  employee_email: string
+  employee_name: string | null
+  feedback_text: string
+  created_at: string
+}

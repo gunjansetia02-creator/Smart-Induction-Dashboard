@@ -6,6 +6,7 @@ const hrNav = [
   { label: 'New Joiners',   href: '/hr?tab=profiles',     badge: '5', icon: '🧑‍💼' },
   { label: 'Materials',     href: '/hr?tab=materials',    badge: '', icon: '🎬' },
   { label: 'Doubt Session', href: '/hr?tab=doubt',        badge: '4', icon: '💬' },
+  { label: 'Feedback',      href: '/hr?tab=feedback',     badge: '', icon: '📝' },
 ]
 
 const empNav = [

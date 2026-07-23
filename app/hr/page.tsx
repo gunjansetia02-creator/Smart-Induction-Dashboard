@@ -5,8 +5,9 @@ import { Scheduler } from '@/components/hr/Scheduler'
 import { Profiles } from '@/components/hr/Profiles'
 import { MaterialsAdmin } from '@/components/hr/MaterialsAdmin'
 import { DoubtSession } from '@/components/hr/DoubtSession'
+import { Feedback } from '@/components/hr/Feedback'
 
-const TABS = ['overview', 'scheduler', 'profiles', 'materials', 'doubt'] as const
+const TABS = ['overview', 'scheduler', 'profiles', 'materials', 'doubt', 'feedback'] as const
 type Tab = typeof TABS[number]
 
 const TAB_LABELS: Record<Tab, string> = {
@@ -15,6 +16,7 @@ const TAB_LABELS: Record<Tab, string> = {
   profiles:  'New Joiners',
   materials: 'Materials',
   doubt:     'Doubt Session',
+  feedback:  'Feedback',
 }
 
 export default async function HRPage({
@@ -51,6 +53,7 @@ export default async function HRPage({
       {tab === 'profiles'  && <Profiles />}
       {tab === 'materials' && <MaterialsAdmin />}
       {tab === 'doubt'     && <DoubtSession />}
+      {tab === 'feedback'  && <Feedback />}
     </Shell>
   )
 }
