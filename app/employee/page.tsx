@@ -4,8 +4,7 @@ import { Home } from '@/components/employee/Home'
 import { Materials } from '@/components/employee/Materials'
 import { BatchChannel } from '@/components/employee/BatchChannel'
 import { EmpDoubt } from '@/components/employee/EmpDoubt'
-import { WelcomeGuideModal } from '@/components/employee/WelcomeGuideModal'
-import { markJoinerLogin } from '@/lib/data/mark-login'
+import { FirstVisitGate } from '@/components/employee/FirstVisitGate'
 import { getJoinerByEmail } from '@/lib/data/get-joiners'
 
 const HR_EMAIL = process.env.HR_EMAIL ?? 'Gunjan.setia@koenig-solutions.com'
@@ -28,20 +27,17 @@ export default async function EmployeePage({
   const { tab: rawTab, email } = await searchParams
   const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? '') ? (rawTab as Tab) : 'home'
 
-  const [firstLoginResult, joiner] = await Promise.all([
-    email ? markJoinerLogin(email).catch(() => false) : Promise.resolve(false),
-    email ? getJoinerByEmail(email) : Promise.resolve(null),
-  ])
+  const joiner = email ? await getJoinerByEmail(email) : null
   const employeeEmail = email || undefined
   const employeeName = joiner?.name || undefined
   // HR's own address always sees the tour, for repeat testing — real joiners
-  // only get it once, the moment their first_login_at is actually set.
+  // only get it once, the moment their first_login_at is actually set (via a
+  // client-side call — see FirstVisitGate).
   const isTestAccount = email?.toLowerCase() === HR_EMAIL.toLowerCase()
-  const isFirstVisit = isTestAccount || firstLoginResult
 
   return (
     <Shell isHR={false} activeTab={tab === 'home' ? '' : tab}>
-      {isFirstVisit && <WelcomeGuideModal />}
+      {email && <FirstVisitGate email={email} isTestAccount={isTestAccount} />}
 
       {/* Tab bar — carries ?email= across tabs so a real joiner's identity
           doesn't get lost the moment they navigate away from Home */}
