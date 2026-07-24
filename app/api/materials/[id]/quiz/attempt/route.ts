@@ -5,7 +5,7 @@ const PASS_THRESHOLD = 0.7
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  let body: { employeeEmail?: string; employeeName?: string; answers?: number[] }
+  let body: { employeeEmail?: string; employeeName?: string; answers?: { questionId: string; answerIndex: number }[] }
   try {
     body = await req.json()
   } catch {
@@ -20,13 +20,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .from('material_quiz_questions')
     .select('id, correct_index')
     .eq('material_id', id)
-    .order('sort_order', { ascending: true })
 
   if (qError) return NextResponse.json({ error: qError.message }, { status: 500 })
   if (!questions || questions.length === 0) return NextResponse.json({ error: 'This material has no quiz' }, { status: 422 })
 
+  // Matched by question id, not array position — each new joiner sees the
+  // questions in their own shuffled order (see QuizModal), so position alone
+  // can't be trusted to line answers up with the right question.
+  const submittedByQuestionId = new Map(body.answers.map(a => [a.questionId, a.answerIndex]))
   const total = questions.length
-  const score = questions.reduce((acc, q, i) => acc + (body.answers![i] === q.correct_index ? 1 : 0), 0)
+  const score = questions.reduce((acc, q) => acc + (submittedByQuestionId.get(q.id) === q.correct_index ? 1 : 0), 0)
   const passed = score / total >= PASS_THRESHOLD
 
   const { error: attemptError } = await supabase

@@ -15,6 +15,15 @@ interface AttemptResult {
   threshold: number
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
+}
+
 export function QuizModal({
   materialId,
   materialTitle,
@@ -38,7 +47,10 @@ export function QuizModal({
   useEffect(() => {
     fetch(`/api/materials/${materialId}/quiz`)
       .then(r => r.json())
-      .then(d => setQuestions(d.questions ?? []))
+      // Shuffled once per attempt — the question pool is the same for every
+      // new joiner, but the order (and so the numbering) differs per person,
+      // making it useless to just share "answer #3 is B".
+      .then(d => setQuestions(shuffle(d.questions ?? [])))
       .catch(() => setQuestions([]))
   }, [materialId])
 
@@ -46,11 +58,11 @@ export function QuizModal({
     if (!questions) return
     setSubmitting(true)
     try {
-      const orderedAnswers = questions.map(q => answers[q.id] ?? -1)
+      const answerPairs = questions.map(q => ({ questionId: q.id, answerIndex: answers[q.id] ?? -1 }))
       const res = await fetch(`/api/materials/${materialId}/quiz/attempt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ employeeEmail, employeeName, answers: orderedAnswers }),
+        body: JSON.stringify({ employeeEmail, employeeName, answers: answerPairs }),
       })
       const data = await res.json()
       if (res.ok) {
