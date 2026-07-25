@@ -4,7 +4,7 @@ import { notifyHRNewDoubt } from '@/lib/automation/doubt-email'
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ qid: string }> }) {
   const { qid } = await params
-  let body: { resolved?: boolean; escalated?: boolean; hrAnswer?: string }
+  let body: { resolved?: boolean; escalated?: boolean; hrAnswer?: string; aiConfirmed?: boolean }
   try {
     body = await req.json()
   } catch {
@@ -19,6 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ qi
     update.hr_answered_at = new Date().toISOString()
     update.resolved = true
   }
+  if (body.aiConfirmed !== undefined) update.ai_confirmed = body.aiConfirmed
 
   const { data, error } = await supabase
     .from('material_questions')
@@ -40,6 +41,28 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ qi
       question: data.question,
       aiAttempted: Boolean(data.ai_answer),
     }).catch(e => console.error('[Doubt Email] Failed to notify HR:', e instanceof Error ? e.message : String(e)))
+  }
+
+  // Both paths feed the verified-answers table, which is what makes future
+  // AI answers for this material better: confirming reinforces a good
+  // answer, correcting replaces a bad one — either way, the next joiner who
+  // asks something similar gets the trusted answer instead of a fresh guess.
+  if (body.aiConfirmed === true && data.ai_answer) {
+    await supabase.from('verified_answers').insert({
+      material_id: data.material_id,
+      question: data.question,
+      answer: data.ai_answer,
+      source: 'ai_confirmed',
+      source_question_id: data.id,
+    })
+  } else if (body.hrAnswer !== undefined) {
+    await supabase.from('verified_answers').insert({
+      material_id: data.material_id,
+      question: data.question,
+      answer: body.hrAnswer,
+      source: 'hr_corrected',
+      source_question_id: data.id,
+    })
   }
 
   return NextResponse.json({ question: data })

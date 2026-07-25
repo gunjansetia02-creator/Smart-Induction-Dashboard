@@ -63,6 +63,21 @@ export interface MaterialQuestionRow {
   hr_answered_at: string | null
   resolved: boolean
   escalated: boolean
+  // HR reviewed the AI's answer and confirmed it was correct as-is (distinct
+  // from hr_answer, which means HR replaced/corrected it).
+  ai_confirmed: boolean
+  created_at: string
+}
+
+// HR-verified Q&A pairs, fed back into future AI answers for the same
+// material so a mistake — once corrected — doesn't get made twice.
+export interface VerifiedAnswerRow {
+  id: string
+  material_id: string
+  question: string
+  answer: string
+  source: 'ai_confirmed' | 'hr_corrected'
+  source_question_id: string | null
   created_at: string
 }
 
