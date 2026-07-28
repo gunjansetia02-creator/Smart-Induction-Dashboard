@@ -5,6 +5,7 @@ import { getJoinerStatuses } from '@/lib/data/get-joiner-statuses'
 import { getBatchmates } from '@/lib/data/get-batchmates'
 import type { Joiner } from '@/lib/types'
 import { DEMO_EMPLOYEE_EMAIL, DEMO_EMPLOYEE_NAME } from './Materials'
+import { InductionFeedbackCard } from './InductionFeedbackCard'
 
 const AVATAR_COLORS = ['#4A9BE8', '#27B882', '#F4A622', '#E85A4A', '#1B2D50', '#6B7A99']
 
@@ -101,6 +102,8 @@ export async function Home({
           ))}
         </div>
       </div>
+
+      {materialsDone && <InductionFeedbackCard employeeEmail={employeeEmail} employeeName={employeeName} />}
 
       {/* Two-col */}
       <div className="grid grid-cols-[1fr_260px] gap-[18px]">

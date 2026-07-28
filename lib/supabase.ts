@@ -90,3 +90,14 @@ export interface JoinerFeedbackRow {
   feedback_text: string
   created_at: string
 }
+
+// The joiner's own feedback on the induction process itself, submitted once
+// they've completed it — the reverse direction of JoinerFeedbackRow.
+export interface InductionFeedbackRow {
+  id: string
+  employee_email: string
+  employee_name: string | null
+  rating: number | null
+  feedback_text: string
+  created_at: string
+}
