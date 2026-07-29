@@ -29,7 +29,20 @@ function buildEmailHtml(name: string, email: string): string {
   return `
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <style>
+    /* Outlook.com / Outlook mobile apply their own automatic dark-mode
+       recoloring to elements they don't recognize as intentionally styled —
+       without this, the CTA button's navy background and white text can each
+       get inverted independently, leaving near-invisible text on the button. */
+    [data-ogsc] .cta-td, [data-ogsc] .cta-td a { background-color:#1B2D50 !important; color:#ffffff !important; }
+    [data-ogsb] .cta-td, [data-ogsb] .cta-td a { background-color:#1B2D50 !important; color:#ffffff !important; }
+  </style>
+</head>
 <body style="margin:0;padding:0;background:#f4f6fb;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb;padding:32px 0;">
     <tr><td align="center">
@@ -110,14 +123,18 @@ function buildEmailHtml(name: string, email: string): string {
                  Outlook's Word rendering engine) -->
             <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:28px auto 8px;">
               <tr>
-                <td bgcolor="#1B2D50" style="border-radius:8px;mso-padding-alt:14px 36px;">
+                <td class="cta-td" bgcolor="#1B2D50" style="background-color:#1B2D50;border-radius:8px;mso-padding-alt:14px 36px;">
                   <a href="${dashboardLink}" target="_blank"
                      style="display:inline-block;padding:14px 36px;font-family:'Segoe UI',Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.3px;">
-                    Open Your Induction Dashboard →
+                    <span style="color:#ffffff !important;">Open Your Induction Dashboard →</span>
                   </a>
                 </td>
               </tr>
             </table>
+            <p style="margin:10px 0 0;font-size:11.5px;color:#9AA6BB;text-align:center;">
+              Button not showing up right? Copy and paste this link into your browser:<br>
+              <a href="${dashboardLink}" style="color:#4A9BE8;word-break:break-all;">${dashboardLink}</a>
+            </p>
           </td>
         </tr>
 
