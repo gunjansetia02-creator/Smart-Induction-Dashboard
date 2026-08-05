@@ -9,20 +9,47 @@ const hrNav = [
   { label: 'Feedback',      href: '/hr?tab=feedback',     badge: '', icon: '📝' },
 ]
 
-const empNav = [
-  { label: 'Home',          href: '/employee',                badge: '', icon: '🏠' },
-  { label: 'My Materials',  href: '/employee?tab=materials',  badge: '', icon: '🎬' },
-  { label: 'Batch Channel', href: '/employee?tab=batch',      badge: '', icon: '👋' },
-  { label: 'Doubt Session', href: '/employee?tab=doubt',      badge: '', icon: '💬' },
+const empNavBase = [
+  { label: 'Home',          tab: '',           badge: '', icon: '🏠' },
+  { label: 'My Materials',  tab: 'materials',  badge: '', icon: '🎬' },
+  { label: 'Batch Channel', tab: 'batch',      badge: '', icon: '👋' },
+  { label: 'Doubt Session', tab: 'doubt',      badge: '', icon: '💬' },
 ]
 
 function navKey(href: string) {
   if (!href.includes('?')) return ''
-  return href.split('tab=')[1] ?? ''
+  return href.split('tab=')[1]?.split('&')[0] ?? ''
 }
 
-export function Sidebar({ isHR, activeTab }: { isHR: boolean; activeTab: string }) {
-  const nav = isHR ? hrNav : empNav
+function initialsOf(name: string) {
+  const parts = name.trim().split(/\s+/)
+  return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || 'NJ'
+}
+
+export function Sidebar({
+  isHR,
+  activeTab,
+  employeeEmail,
+  employeeName,
+}: {
+  isHR: boolean
+  activeTab: string
+  // Real employees only — without this, every sidebar click (the primary
+  // nav) drops back to /employee with no ?email=, silently falling through
+  // to the demo account default and misattributing everything they do next.
+  employeeEmail?: string
+  employeeName?: string
+}) {
+  const nav = isHR
+    ? hrNav
+    : empNavBase.map(item => ({
+        label: item.label,
+        badge: item.badge,
+        icon: item.icon,
+        href: employeeEmail
+          ? `/employee?${new URLSearchParams({ ...(item.tab ? { tab: item.tab } : {}), email: employeeEmail }).toString()}`
+          : item.tab ? `/employee?tab=${item.tab}` : '/employee',
+      }))
 
   return (
     <aside className="w-[224px] bg-navy flex flex-col flex-shrink-0 sticky top-0 h-screen overflow-y-auto">
@@ -73,14 +100,14 @@ export function Sidebar({ isHR, activeTab }: { isHR: boolean; activeTab: string 
       {/* Footer */}
       <div className="px-[18px] py-3.5 border-t border-white/[0.07] flex items-center gap-2.5">
         <div className="w-[30px] h-[30px] rounded-full bg-sky flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0">
-          {isHR ? 'GS' : 'AK'}
+          {isHR ? 'GS' : initialsOf(employeeName || 'New Joiner')}
         </div>
         <div>
           <div className="text-white text-[12.5px] font-medium">
-            {isHR ? 'Gunjan Setia' : 'Arjun Kapoor'}
+            {isHR ? 'Gunjan Setia' : (employeeName || 'New Joiner')}
           </div>
           <div className="text-white/38 text-[10.5px]">
-            {isHR ? 'HR Executive' : 'Sales'}
+            {isHR ? 'HR Executive' : 'New Joiner'}
           </div>
         </div>
       </div>

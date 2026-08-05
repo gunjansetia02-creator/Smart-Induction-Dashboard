@@ -36,7 +36,7 @@ export default async function EmployeePage({
   const isTestAccount = email?.toLowerCase() === HR_EMAIL.toLowerCase()
 
   return (
-    <Shell isHR={false} activeTab={tab === 'home' ? '' : tab}>
+    <Shell isHR={false} activeTab={tab === 'home' ? '' : tab} employeeEmail={employeeEmail} employeeName={employeeName}>
       {email && <FirstVisitGate email={email} isTestAccount={isTestAccount} />}
 
       {/* Tab bar — carries ?email= across tabs so a real joiner's identity
