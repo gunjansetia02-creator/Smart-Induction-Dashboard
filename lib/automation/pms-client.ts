@@ -184,3 +184,20 @@ export function filterTodaysJoiners(employees: PMSEmployee[]): PMSEmployee[] {
     return doj.toISOString().substring(0, 10) === today
   })
 }
+
+// Joined within the last `windowDays` days (inclusive of today) — wider than
+// a strict "DOJ === today" check so a single missed/failed run (PMS hiccup,
+// auth misconfiguration, a redeploy mid-cron, etc.) doesn't permanently skip
+// someone. The caller is expected to additionally skip anyone who already has
+// welcome_email_sent_at set, so re-running this daily is always safe.
+export function filterRecentJoiners(employees: PMSEmployee[], windowDays = 7): PMSEmployee[] {
+  const today = new Date(todayIST())
+  const cutoff = new Date(today)
+  cutoff.setDate(cutoff.getDate() - windowDays)
+
+  return employees.filter(emp => {
+    const doj = parseDOJ(emp['DOJ'])
+    if (!doj) return false
+    return doj >= cutoff && doj <= today
+  })
+}

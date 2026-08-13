@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { fetchAllEmployees, filterTodaysJoiners } from '@/lib/automation/pms-client'
+import { fetchAllEmployees, filterRecentJoiners } from '@/lib/automation/pms-client'
 import { sendWelcomeEmail }      from '@/lib/automation/welcome-email'
 import { addAllToMondayMeeting } from '@/lib/automation/meeting-invite'
 import { isIndiaBasedLocation }  from '@/lib/automation/india-location'
+import { supabase } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   const auth          = req.headers.get('authorization') ?? ''
@@ -20,18 +21,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: `PMS fetch failed: ${(err as Error).message}` }, { status: 502 })
   }
 
-  const newJoiners = filterTodaysJoiners(allEmployees)
-  if (newJoiners.length === 0) {
-    return NextResponse.json({ message: 'No new joiners today', processed: 0 })
+  // A 7-day lookback, not just "DOJ === today" — so a single missed run (this
+  // route returning 401 due to a misconfigured CRON_SECRET, a PMS hiccup, a
+  // mid-deploy gap, etc.) doesn't permanently skip someone. Safe to run daily
+  // since anyone already emailed gets filtered out below.
+  const recentJoiners = filterRecentJoiners(allEmployees)
+  if (recentJoiners.length === 0) {
+    return NextResponse.json({ message: 'No joiners in the last 7 days', processed: 0 })
   }
 
   // Only India-based joiners get the auto welcome email + meeting invite —
   // overseas offices are handled separately.
-  const indiaJoiners = newJoiners.filter(emp => isIndiaBasedLocation(emp['Base Location']))
-  const skippedOverseas = newJoiners.length - indiaJoiners.length
+  const indiaJoiners = recentJoiners.filter(emp => isIndiaBasedLocation(emp['Base Location']))
+  const skippedOverseas = recentJoiners.length - indiaJoiners.length
 
   // Map PMS employees to joiner objects, skip anyone with no email
-  const joiners = indiaJoiners
+  const candidates = indiaJoiners
     .map(emp => ({
       name:       emp['Name']         ?? 'New Joiner',
       email:      emp['Office Email'] ?? emp['Personal Email'] ?? '',
@@ -39,12 +44,31 @@ export async function GET(req: NextRequest) {
     }))
     .filter(j => j.email !== '')
 
-  if (joiners.length === 0) {
+  if (candidates.length === 0) {
     return NextResponse.json({
       message: skippedOverseas > 0
-        ? `${skippedOverseas} new joiner(s) found but all are overseas — no India-based joiners to email today`
-        : 'Joiners found but none have an email in PMS',
+        ? `${skippedOverseas} recent joiner(s) found but all are overseas — no India-based joiners to email`
+        : 'Recent joiners found but none have an email in PMS',
       processed: 0,
+    })
+  }
+
+  // Skip anyone already sent a welcome email — this is what makes the wider
+  // 7-day window safe to re-run every day without spamming people.
+  const { data: alreadySent } = await supabase
+    .from('joiner_communications')
+    .select('employee_email')
+    .in('employee_email', candidates.map(c => c.email))
+    .not('welcome_email_sent_at', 'is', null)
+
+  const sentEmails = new Set((alreadySent ?? []).map(r => r.employee_email.toLowerCase()))
+  const joiners = candidates.filter(j => !sentEmails.has(j.email.toLowerCase()))
+
+  if (joiners.length === 0) {
+    return NextResponse.json({
+      message: `${candidates.length} recent India-based joiner(s) found, all already emailed`,
+      processed: 0,
+      skippedOverseas,
     })
   }
 
@@ -65,10 +89,24 @@ export async function GET(req: NextRequest) {
     meeting_sent: meetingResult,
   }))
 
+  // Record what actually went out so tomorrow's run (and the "already
+  // emailed" check above) knows not to touch these again.
+  const now = new Date().toISOString()
+  await Promise.all(
+    results.map((r) => {
+      const update: Record<string, unknown> = { employee_email: r.email, updated_at: now }
+      if (r.email_sent === true) update.welcome_email_sent_at = now
+      if (meetingResult === 'invited') update.meeting_invite_sent_at = now
+      if (Object.keys(update).length <= 2) return null
+      return supabase.from('joiner_communications').upsert(update, { onConflict: 'employee_email' })
+    })
+  )
+
   return NextResponse.json({
     message:   `Processed ${joiners.length} joiner(s) — 1 shared meeting${skippedOverseas > 0 ? ` (${skippedOverseas} overseas joiner(s) skipped)` : ''}`,
     processed: joiners.length,
     skippedOverseas,
+    alreadyEmailed: candidates.length - joiners.length,
     meeting:   meetingResult,
     results,
   })
