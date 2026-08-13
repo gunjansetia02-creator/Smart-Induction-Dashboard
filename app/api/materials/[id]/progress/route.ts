@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { checkAndNotifyInductionComplete } from '@/lib/data/check-induction-complete'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -37,5 +38,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  if (body.status === 'complete') {
+    checkAndNotifyInductionComplete(body.employeeEmail, body.employeeName ?? null)
+      .catch(e => console.error('[Induction Complete] Failed to check/notify:', e instanceof Error ? e.message : String(e)))
+  }
+
   return NextResponse.json({ progress: data })
 }

@@ -22,9 +22,9 @@ const TAB_LABELS: Record<Tab, string> = {
 export default async function HRPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; employeeEmail?: string }>
 }) {
-  const { tab: rawTab } = await searchParams
+  const { tab: rawTab, employeeEmail } = await searchParams
   const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? '') ? (rawTab as Tab) : 'overview'
 
   return (
@@ -53,7 +53,7 @@ export default async function HRPage({
       {tab === 'profiles'  && <Profiles />}
       {tab === 'materials' && <MaterialsAdmin />}
       {tab === 'doubt'     && <DoubtSession />}
-      {tab === 'feedback'  && <Feedback />}
+      {tab === 'feedback'  && <Feedback initialEmployeeEmail={employeeEmail} />}
     </Shell>
   )
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { checkAndNotifyInductionComplete } from '@/lib/data/check-induction-complete'
 
 const PASS_THRESHOLD = 0.7
 
@@ -50,6 +51,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
       { onConflict: 'material_id,employee_email' }
     )
+
+    checkAndNotifyInductionComplete(body.employeeEmail, body.employeeName ?? null)
+      .catch(e => console.error('[Induction Complete] Failed to check/notify:', e instanceof Error ? e.message : String(e)))
   }
 
   return NextResponse.json({ score, total, passed, threshold: PASS_THRESHOLD })
