@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { answerMaterialQuestion, aiConfigured } from '@/lib/ai-answer'
+import { lookupGlossaryAnswer } from '@/lib/glossary-lookup'
 import { notifyHRNewDoubt, notifyHRAiAnswered } from '@/lib/automation/doubt-email'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -34,7 +35,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let aiAnswer: string | null = null
   let escalated = false
 
-  if (aiConfigured()) {
+  // Straightforward "what is X" questions get answered directly from the
+  // document's own glossary, if it has one — deterministic, instant, and
+  // works even when no AI is configured at all, which is the common case
+  // for acronym lookups like "what is PIR?".
+  aiAnswer = lookupGlossaryAnswer(body.question, material.content_text)
+
+  if (!aiAnswer && aiConfigured()) {
     try {
       const { data: verified } = await supabase
         .from('verified_answers')
@@ -56,7 +63,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       escalated = true
       console.error('[AI] Failed to answer material question:', e instanceof Error ? e.message : String(e))
     }
-  } else {
+  } else if (!aiAnswer) {
     escalated = true
   }
 
