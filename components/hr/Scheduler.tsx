@@ -28,7 +28,7 @@ export async function Scheduler() {
   // Fetch a wide window so the client-side date filter (7/14/21/30/custom) can
   // switch instantly without a server round-trip, same pattern as Profiles.
   const { joiners, live } = await getRecentJoinersWithStatus(3650)
-  const statuses = await getJoinerStatuses(joiners.map(j => j.email))
+  const statuses = await getJoinerStatuses(joiners.map(j => ({ email: j.email, dept: j.dept })))
   const [thisMonday, ...laterMondays] = nextMondays(3)
 
   return (

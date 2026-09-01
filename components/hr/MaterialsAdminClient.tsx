@@ -14,9 +14,10 @@ type FormState = {
   day: string // kept as string for the input; '' = no day assigned
   subject: string // groups this material with others sharing the same (day, subject)
   sortOrder: string // kept as string for the input; '' = no explicit order
+  requiredDepartment: string // '' = shown to everyone; otherwise only that PMS department
 }
 
-const EMPTY_FORM: FormState = { title: '', description: '', type: 'video', url: '', duration: '', day: '', subject: '', sortOrder: '' }
+const EMPTY_FORM: FormState = { title: '', description: '', type: 'video', url: '', duration: '', day: '', subject: '', sortOrder: '', requiredDepartment: '' }
 
 interface EscalatedQuestion {
   id: string
@@ -69,6 +70,7 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
       day: m.day === null ? '' : String(m.day),
       subject: m.subject ?? '',
       sortOrder: m.sort_order === null ? '' : String(m.sort_order),
+      requiredDepartment: m.required_department ?? '',
     })
     setUrlMode('link')
     setUploadError(null)
@@ -136,6 +138,7 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
         day: form.day.trim() === '' ? null : Number(form.day),
         subject: form.subject.trim() || null,
         sortOrder: form.sortOrder.trim() === '' ? null : Number(form.sortOrder),
+        requiredDepartment: form.requiredDepartment.trim() || null,
       }
 
       const res = form.id
@@ -247,7 +250,12 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
                       <div key={m.id} className="bg-white border border-bdr rounded-[5px] p-4 flex items-start gap-3">
                         <div className="w-[36px] h-[36px] rounded-[4px] bg-ground flex items-center justify-center text-[16px] flex-shrink-0">{typeIcon(m.type)}</div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[13.5px] font-bold text-navy">{m.title}</div>
+                          <div className="text-[13.5px] font-bold text-navy flex items-center gap-1.5">
+                            {m.title}
+                            {m.required_department && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-kamber-dim text-amber-800">{m.required_department} only</span>
+                            )}
+                          </div>
                           {m.description && <div className="text-[12px] text-muted mt-0.5">{m.description}</div>}
                           <div className="flex items-center gap-3 text-[11px] text-faint mt-1.5">
                             <span>{m.type === 'pdf' ? 'PDF' : 'Video'}{m.duration ? ` · ${m.duration}` : ''}</span>
@@ -354,6 +362,11 @@ export function MaterialsAdminClient({ initialMaterials }: { initialMaterials: A
                 Subject <span className="text-faint">(optional — groups this with others under one heading, e.g. "Onboarding")</span>
                 <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
                   className="border border-bdr rounded px-2.5 py-1.5 text-[13px]" placeholder="e.g. Onboarding" />
+              </label>
+              <label className="text-[12px] text-muted flex flex-col gap-1">
+                Restrict to department <span className="text-faint">(optional — leave blank to show everyone; otherwise must exactly match the PMS Department, e.g. "Sales")</span>
+                <input value={form.requiredDepartment} onChange={e => setForm(f => ({ ...f, requiredDepartment: e.target.value }))}
+                  className="border border-bdr rounded px-2.5 py-1.5 text-[13px]" placeholder="e.g. Sales" />
               </label>
             </div>
             <div className="p-4 border-t border-ground flex justify-end gap-2">

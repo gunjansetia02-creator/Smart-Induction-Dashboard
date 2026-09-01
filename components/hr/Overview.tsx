@@ -37,8 +37,8 @@ export async function Overview() {
     getThisWeekJoiners(),
   ])
 
-  const emails = Array.from(new Set([...allJoiners, ...weekJoiners].map(j => j.email).filter(Boolean)))
-  const statuses = await getJoinerStatuses(emails)
+  const joinerByEmail = new Map([...allJoiners, ...weekJoiners].filter(j => j.email).map(j => [j.email, j]))
+  const statuses = await getJoinerStatuses(Array.from(joinerByEmail.values()).map(j => ({ email: j.email, dept: j.dept })))
   const statusOf = (j: { email: string }) => statusFromEntry(statuses[j.email])
 
   const thisMonth  = allJoiners.length

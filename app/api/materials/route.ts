@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { title?: string; description?: string; type?: string; url?: string; duration?: string; day?: number | null; subject?: string | null; sortOrder?: number | null }
+  let body: { title?: string; description?: string; type?: string; url?: string; duration?: string; day?: number | null; subject?: string | null; sortOrder?: number | null; requiredDepartment?: string | null }
   try {
     body = await req.json()
   } catch {
@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
       day: body.day ?? null,
       subject: body.subject ?? null,
       sort_order: body.sortOrder ?? null,
+      required_department: body.requiredDepartment ?? null,
     })
     .select()
     .single()

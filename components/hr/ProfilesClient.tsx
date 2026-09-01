@@ -93,12 +93,12 @@ export function ProfilesClient({
 
   // Batched status fetch — one request for the whole visible set, not one per card
   useEffect(() => {
-    const emails = filtered.map(j => j.email).filter(Boolean)
-    if (emails.length === 0) return
+    const joiners = filtered.filter(j => j.email).map(j => ({ email: j.email, dept: j.dept }))
+    if (joiners.length === 0) return
     fetch('/api/joiners/status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ emails }),
+      body: JSON.stringify({ joiners }),
     })
       .then(r => r.json())
       .then(d => setStatuses(prev => ({ ...prev, ...(d.statuses ?? {}) })))

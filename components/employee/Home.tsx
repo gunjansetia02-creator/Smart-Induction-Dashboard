@@ -34,7 +34,7 @@ export async function Home({
   joiner?: Joiner | null
 } = {}) {
   const [statuses, batchmates] = await Promise.all([
-    getJoinerStatuses([employeeEmail]),
+    getJoinerStatuses([{ email: employeeEmail, dept: joiner?.dept }]),
     joiner ? getBatchmates(joiner, 4) : Promise.resolve([]),
   ])
   const s = statuses[employeeEmail]

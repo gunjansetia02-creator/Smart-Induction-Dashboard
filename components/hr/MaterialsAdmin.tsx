@@ -11,6 +11,7 @@ export interface AdminMaterial {
   day: number | null
   subject: string | null
   sort_order: number | null
+  required_department: string | null
   created_at: string
   learnersStarted: number
   learnersComplete: number

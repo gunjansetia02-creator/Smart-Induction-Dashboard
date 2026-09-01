@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { MaterialsListClient, type EmployeeMaterial } from './MaterialsListClient'
+import type { Joiner } from '@/lib/types'
 
 // Fallback identity for HR's "Employee View" preview toggle, which has no
 // real joiner behind it — real joiners are identified via ?email= on their
@@ -10,11 +11,13 @@ export const DEMO_EMPLOYEE_NAME = 'Arjun Kapoor'
 export async function Materials({
   employeeEmail = DEMO_EMPLOYEE_EMAIL,
   employeeName = DEMO_EMPLOYEE_NAME,
+  joiner,
 }: {
   employeeEmail?: string
   employeeName?: string
+  joiner?: Joiner | null
 } = {}) {
-  const { data: materials, error } = await supabase
+  const { data: allMaterials, error } = await supabase
     .from('materials')
     .select('*')
     .order('day', { ascending: true, nullsFirst: false })
@@ -24,6 +27,12 @@ export async function Materials({
   if (error) {
     return <div className="text-center py-16 text-red-600 text-[13px]">Failed to load materials: {error.message}</div>
   }
+
+  // Department-restricted materials (e.g. a Sales-only deck) only show up
+  // for employees in that exact PMS department — everyone else never even
+  // sees the row, so it can't count against their completion either.
+  const myDept = (joiner?.dept ?? '').trim().toLowerCase()
+  const materials = allMaterials.filter(m => !m.required_department || m.required_department.trim().toLowerCase() === myDept)
 
   if (materials.length === 0) {
     return (

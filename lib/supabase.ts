@@ -39,6 +39,10 @@ export interface MaterialRow {
   // Full extracted document text, used to ground the AI's answers instead of
   // just the short description — set manually per material as HR provides it.
   content_text: string | null
+  // When set, only employees whose PMS Department matches (case-insensitive)
+  // see this material at all, and it's excluded from everyone else's
+  // completion total — e.g. a Sales-only sales-enablement deck.
+  required_department: string | null
   created_at: string
 }
 
