@@ -1,4 +1,5 @@
 import { fetchAllEmployees, parseDOJ } from '@/lib/automation/pms-client'
+import { isIndiaBasedLocation }        from '@/lib/automation/india-location'
 import { joiners as mockJoiners }       from '@/lib/mock-data'
 import type { Joiner, JoinerStatus, InviteStatus } from '@/lib/types'
 
@@ -96,10 +97,13 @@ export async function getJoinerByEmail(email: string): Promise<Joiner | null> {
   }
 }
 
-// Joiners from last N days — falls back to mock if PMS is unreachable
+// Joiners from last N days — falls back to mock if PMS is unreachable.
+// India-only: overseas offices are handled separately, and showing them
+// here (with 0% progress on materials they were never meant to do) just
+// confuses HR's view of who's actually behind.
 export async function getRecentJoiners(withinDays = 60): Promise<Joiner[]> {
   try {
-    return await fetchMapped(withinDays)
+    return (await fetchMapped(withinDays)).filter(j => isIndiaBasedLocation(j.baseLocation))
   } catch (error) {
     console.error('[PMS Error] Failed to fetch joiners:', error instanceof Error ? error.message : String(error))
     return mockJoiners
@@ -109,7 +113,7 @@ export async function getRecentJoiners(withinDays = 60): Promise<Joiner[]> {
 // Same as getRecentJoiners, but also reports whether the data is really live from PMS
 export async function getRecentJoinersWithStatus(withinDays = 60): Promise<{ joiners: Joiner[]; live: boolean; error?: string }> {
   try {
-    const joiners = await fetchMapped(withinDays)
+    const joiners = (await fetchMapped(withinDays)).filter(j => isIndiaBasedLocation(j.baseLocation))
     return { joiners, live: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -123,7 +127,7 @@ export async function getThisMonthJoiners(): Promise<Joiner[]> {
   try {
     const { start, end } = currentMonthBounds()
     const all = await fetchMapped(90)
-    return all.filter(j => j._doj >= start && j._doj <= end)
+    return all.filter(j => j._doj >= start && j._doj <= end && isIndiaBasedLocation(j.baseLocation))
   } catch {
     return mockJoiners
   }
@@ -134,7 +138,7 @@ export async function getThisWeekJoiners(): Promise<Joiner[]> {
   try {
     const { start, end } = currentWeekBounds()
     const all = await fetchMapped(14)
-    return all.filter(j => j._doj >= start && j._doj <= end)
+    return all.filter(j => j._doj >= start && j._doj <= end && isIndiaBasedLocation(j.baseLocation))
   } catch {
     return mockJoiners
   }
@@ -145,7 +149,7 @@ export async function getThisWeekJoinersWithStatus(): Promise<{ joiners: Joiner[
   try {
     const { start, end } = currentWeekBounds()
     const all = await fetchMapped(14)
-    return { joiners: all.filter(j => j._doj >= start && j._doj <= end), live: true }
+    return { joiners: all.filter(j => j._doj >= start && j._doj <= end && isIndiaBasedLocation(j.baseLocation)), live: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error('[PMS Error] Failed to fetch this week\'s joiners:', message)
