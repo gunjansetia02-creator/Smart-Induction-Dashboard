@@ -51,12 +51,22 @@ function iconBg(m: EmployeeMaterial) {
   return 'bg-sky-dim text-sky'
 }
 
-async function saveProgress(materialId: string, employeeEmail: string, employeeName: string, patch: { status?: string; watchedPercent?: number; lastPositionSeconds?: number }) {
-  await fetch(`/api/materials/${materialId}/progress`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ employeeEmail, employeeName, ...patch }),
-  }).catch(() => {})
+// Returns whether the save actually succeeded — the caller marks a material
+// "complete" in the UI optimistically before this resolves, so a swallowed
+// failure here used to mean the employee saw their progress "save" locally
+// while nothing ever reached the database, with zero indication anything
+// was wrong until a fresh page load quietly reverted them.
+async function saveProgress(materialId: string, employeeEmail: string, employeeName: string, patch: { status?: string; watchedPercent?: number; lastPositionSeconds?: number }): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/materials/${materialId}/progress`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employeeEmail, employeeName, ...patch }),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
 }
 
 function MaterialRow({
@@ -66,6 +76,7 @@ function MaterialRow({
   isOpen,
   onToggleOpen,
   onUpdate,
+  onSaveError,
 }: {
   material: EmployeeMaterial
   employeeEmail: string
@@ -73,6 +84,7 @@ function MaterialRow({
   isOpen: boolean
   onToggleOpen: () => void
   onUpdate: (patch: Partial<EmployeeMaterial>) => void
+  onSaveError: () => void
 }) {
   const [askOpen, setAskOpen] = useState(false)
   const [questionText, setQuestionText] = useState('')
@@ -85,27 +97,31 @@ function MaterialRow({
   const videoSource = material.type === 'video' ? detectVideoSource(material.url) : null
   const hasQuiz = material.quizCount > 0
 
-  function markDone() {
+  async function markDone() {
     if (hasQuiz) { setQuizOpen(true); return }
+    const prevStatus = material.status, prevPercent = material.watchedPercent
     onUpdate({ status: 'complete', watchedPercent: 100 })
-    saveProgress(material.id, employeeEmail, employeeName, { status: 'complete', watchedPercent: 100 })
+    const ok = await saveProgress(material.id, employeeEmail, employeeName, { status: 'complete', watchedPercent: 100 })
+    if (!ok) { onUpdate({ status: prevStatus, watchedPercent: prevPercent }); onSaveError() }
   }
 
   function handleQuizPassed() {
     onUpdate({ status: 'complete', watchedPercent: 100 })
   }
 
-  function startIfNeeded() {
+  async function startIfNeeded() {
     if (material.status === 'not-started') {
       onUpdate({ status: 'in-progress' })
-      saveProgress(material.id, employeeEmail, employeeName, { status: 'in-progress' })
+      const ok = await saveProgress(material.id, employeeEmail, employeeName, { status: 'in-progress' })
+      if (!ok) { onUpdate({ status: 'not-started' }); onSaveError() }
     }
   }
 
-  function handleVideoProgress(percent: number, positionSeconds: number) {
+  async function handleVideoProgress(percent: number, positionSeconds: number) {
     const status = percent >= 95 && !hasQuiz ? 'complete' : 'in-progress'
     onUpdate({ watchedPercent: percent, lastPosition: positionSeconds, status })
-    saveProgress(material.id, employeeEmail, employeeName, { watchedPercent: percent, lastPositionSeconds: positionSeconds, status })
+    const ok = await saveProgress(material.id, employeeEmail, employeeName, { watchedPercent: percent, lastPositionSeconds: positionSeconds, status })
+    if (!ok) onSaveError()
   }
 
   function toggleAsk() {
@@ -136,7 +152,7 @@ function MaterialRow({
           status: nextStatus,
         })
         if (nextStatus !== material.status) {
-          saveProgress(material.id, employeeEmail, employeeName, { status: nextStatus })
+          saveProgress(material.id, employeeEmail, employeeName, { status: nextStatus }).then(ok => { if (!ok) onSaveError() })
         }
         setQuestionText('')
       }
@@ -157,7 +173,7 @@ function MaterialRow({
       status: nextStatus,
     })
     if (!resolved) {
-      saveProgress(material.id, employeeEmail, employeeName, { status: nextStatus })
+      saveProgress(material.id, employeeEmail, employeeName, { status: nextStatus }).then(ok => { if (!ok) onSaveError() })
     }
   }
 
@@ -330,6 +346,10 @@ export function MaterialsListClient({
   const [openId, setOpenId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  // Progress saves used to fail silently — an employee could mark everything
+  // "done" locally while nothing reached the database, with no sign anything
+  // was wrong until a fresh page load quietly reverted them. Surface it instead.
+  const [saveError, setSaveError] = useState(false)
 
   function updateMaterial(id: string, patch: Partial<EmployeeMaterial>) {
     setItems(prev => prev.map(m => (m.id === id ? { ...m, ...patch } : m)))
@@ -378,6 +398,15 @@ export function MaterialsListClient({
 
   return (
     <div>
+      {saveError && (
+        <div className="flex items-center gap-2.5 bg-kred-dim border border-red-200 rounded-[6px] p-3 mb-4 text-[12.5px] text-red-800">
+          <span>⚠️</span>
+          <span className="flex-1">Your last change didn&apos;t save — please refresh the page and try again, or check your connection. Anything already marked here may be lost if you navigate away.</span>
+          <button onClick={() => window.location.reload()} className="px-[10px] py-[5px] text-[11.5px] font-semibold bg-white text-navy border border-bdr rounded cursor-pointer hover:opacity-85 whitespace-nowrap">
+            Refresh Page
+          </button>
+        </div>
+      )}
       <div className="flex items-center gap-4 bg-white border border-bdr rounded-[6px] p-4 mb-4">
         <div className="flex flex-col items-center gap-1 flex-shrink-0">
           <ProgressRing value={overallPercent} color={overallPercent === 100 ? '#27B882' : '#4A9BE8'} size={56} strokeWidth={5} />
@@ -449,6 +478,7 @@ export function MaterialsListClient({
                         isOpen={openId === m.id}
                         onToggleOpen={() => setOpenId(prev => (prev === m.id ? null : m.id))}
                         onUpdate={patch => updateMaterial(m.id, patch)}
+                        onSaveError={() => setSaveError(true)}
                       />
                     ))}
                   </div>
