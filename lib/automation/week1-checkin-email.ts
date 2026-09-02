@@ -43,10 +43,14 @@ export async function sendWeek1CheckinEmail(joiner: { name: string; email: strin
               Have you had a chance to go through the materials on your dashboard? Are you facing any doubts
               or stuck on anything?
             </p>
-            <p style="margin:0 0 24px;font-size:14px;color:#374151;line-height:1.7;">
+            <p style="margin:0 0 12px;font-size:14px;color:#374151;line-height:1.7;">
               If something's unclear, ask it right on the dashboard against that material and it'll come
-              straight to me. And either way, I'd love a quick word on how the process has felt so far —
-              takes less than a minute.
+              straight to me.
+            </p>
+            <p style="margin:0 0 24px;font-size:14px;color:#374151;line-height:1.7;">
+              <strong>I'd also love to hear how the process has felt so far</strong> — there's a short feedback
+              box waiting for you on your dashboard home screen. Takes less than a minute, and it directly
+              shapes how we run induction for the next person who joins.
             </p>
 
             <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:8px auto 8px;">
@@ -54,7 +58,7 @@ export async function sendWeek1CheckinEmail(joiner: { name: string; email: strin
                 <td class="cta-td" bgcolor="#1B2D50" style="background-color:#1B2D50;border-radius:8px;mso-padding-alt:14px 32px;">
                   <a href="${dashboardLink}" target="_blank"
                      style="display:inline-block;padding:14px 32px;font-family:'Segoe UI',Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.3px;">
-                    <span style="color:#ffffff !important;">Continue Your Induction →</span>
+                    <span style="color:#ffffff !important;">Continue My Materials & Share Feedback →</span>
                   </a>
                 </td>
               </tr>
