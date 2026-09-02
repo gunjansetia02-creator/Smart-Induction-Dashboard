@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/Card'
 import { Pill } from '@/components/ui/Pill'
 import { getJoinerStatuses } from '@/lib/data/get-joiner-statuses'
 import { getBatchmates } from '@/lib/data/get-batchmates'
+import { supabase } from '@/lib/supabase'
 import type { Joiner } from '@/lib/types'
 import { DEMO_EMPLOYEE_EMAIL, DEMO_EMPLOYEE_NAME } from './Materials'
 import { InductionFeedbackCard } from './InductionFeedbackCard'
@@ -33,11 +34,16 @@ export async function Home({
   employeeName?: string
   joiner?: Joiner | null
 } = {}) {
-  const [statuses, batchmates] = await Promise.all([
+  const [statuses, batchmates, comms] = await Promise.all([
     getJoinerStatuses([{ email: employeeEmail, dept: joiner?.dept }]),
     joiner ? getBatchmates(joiner, 4) : Promise.resolve([]),
+    supabase.from('joiner_communications').select('week1_checkin_sent_at').eq('employee_email', employeeEmail).maybeSingle(),
   ])
   const s = statuses[employeeEmail]
+  // The week-1 check-in nudge invites feedback before completion too — once
+  // that's gone out, keep offering the feedback card on every visit rather
+  // than making them wait until they eventually finish everything.
+  const checkinSent = Boolean(comms.data?.week1_checkin_sent_at)
 
   const firstName = employeeName.split(' ')[0]
   const progress = s?.materialsPercent ?? 0
@@ -103,7 +109,9 @@ export async function Home({
         </div>
       </div>
 
-      {materialsDone && <InductionFeedbackCard employeeEmail={employeeEmail} employeeName={employeeName} />}
+      {(materialsDone || checkinSent) && (
+        <InductionFeedbackCard employeeEmail={employeeEmail} employeeName={employeeName} complete={materialsDone} />
+      )}
 
       {/* Two-col */}
       <div className="grid grid-cols-[1fr_260px] gap-[18px]">

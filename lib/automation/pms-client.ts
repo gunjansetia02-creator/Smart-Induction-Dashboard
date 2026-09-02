@@ -201,3 +201,22 @@ export function filterRecentJoiners(employees: PMSEmployee[], windowDays = 7): P
     return doj >= cutoff && doj <= today
   })
 }
+
+// Working days (Mon–Fri) between two dates, not counting `from` itself —
+// "one week" for a check-in nudge means 5 business days, not 7 calendar
+// days, so a joiner who starts on a Thursday isn't chased for feedback over
+// the following weekend.
+export function businessDaysBetween(from: Date, to: Date): number {
+  let count = 0
+  const cursor = new Date(from)
+  cursor.setHours(0, 0, 0, 0)
+  const end = new Date(to)
+  end.setHours(0, 0, 0, 0)
+
+  while (cursor < end) {
+    cursor.setDate(cursor.getDate() + 1)
+    const day = cursor.getDay() // 0 = Sun, 6 = Sat
+    if (day !== 0 && day !== 6) count++
+  }
+  return count
+}

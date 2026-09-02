@@ -11,9 +11,13 @@ interface FeedbackRow {
 export function InductionFeedbackCard({
   employeeEmail,
   employeeName,
+  complete = true,
 }: {
   employeeEmail: string
   employeeName: string
+  // false when this is showing early (the week-1 check-in nudge) rather
+  // than because every material is actually done — changes the copy only.
+  complete?: boolean
 }) {
   const [existing, setExisting] = useState<FeedbackRow | null | undefined>(undefined)
   const [rating, setRating] = useState<number | null>(null)
@@ -59,7 +63,9 @@ export function InductionFeedbackCard({
 
   return (
     <div className="bg-white border border-bdr rounded-[6px] p-[15px_17px] mb-5">
-      <div className="text-[13.5px] font-bold text-navy mb-1">🎉 You&apos;ve completed your induction — how was it?</div>
+      <div className="text-[13.5px] font-bold text-navy mb-1">
+        {complete ? "🎉 You've completed your induction — how was it?" : "How's your induction going so far?"}
+      </div>
       <div className="text-[12px] text-muted mb-3">Your feedback goes straight to HR — any suggestions to make this better for the next joiner?</div>
 
       <div className="flex gap-1.5 mb-3">
