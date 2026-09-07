@@ -22,7 +22,7 @@ interface RMSTokenContent {
   Role: string
 }
 
-export async function getRMSToken(): Promise<RMSTokenContent> {
+async function getRMSToken(): Promise<RMSTokenContent> {
   requireCredentials()
 
   const maxRetries = 3
