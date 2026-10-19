@@ -150,7 +150,10 @@ export function ProfilesClient({
                   <ProgressRing value={s ? s.materialsPercent : 0} color={s ? ringColor(displayStatus) : '#C7D0DE'} size={70} />
                 </div>
                 <div className="text-[13px] font-bold text-navy mb-0.5">{j.name}</div>
-                <div className="text-[11.5px] text-muted mb-2.5">{j.designation}</div>
+                <div className="text-[11.5px] text-muted">{j.designation}</div>
+                <div className="text-[11px] text-faint mt-0.5 mb-2.5" title="Base Location">
+                  📍 {j.baseLocation || 'Location not set'}
+                </div>
                 {s ? statusPill(displayStatus) : <Pill variant="grey">Loading…</Pill>}
                 <div className="text-[11px] text-faint mt-2" title={`Date of Joining: ${j.joinedDate}`}>
                   DOJ: {j.joinedDate} · {s ? `${s.materialsComplete}/${s.materialsTotal}` : '…'} materials
