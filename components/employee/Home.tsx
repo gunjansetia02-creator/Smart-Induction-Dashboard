@@ -52,6 +52,11 @@ export async function Home({
   const materialsDone = s ? s.materialsComplete === s.materialsTotal && s.materialsTotal > 0 : false
   const openDoubts = s?.openDoubts ?? 0
   const materialsBadgeVariant: 'green' | 'blue' = materialsDone ? 'green' : 'blue'
+  // Every PMS trainer sits in "Training Delivery Inhouse"; the designation
+  // check also catches trainers filed under another department.
+  const isTrainer = Boolean(joiner) && (
+    /training delivery/i.test(joiner?.dept ?? '') || /trainer/i.test(joiner?.designation ?? '')
+  )
 
   const checklist = [
     { label: 'Open your Induction Dashboard',  done: true,  active: false, badge: null },
@@ -108,6 +113,15 @@ export async function Home({
           ))}
         </div>
       </div>
+
+      {isTrainer && (
+        <div className="bg-white border border-bdr border-l-[4px] border-l-kamber rounded-[6px] p-[16px_20px] mb-5">
+          <div className="text-[10.5px] font-bold text-amber-800 tracking-[0.6px] uppercase mb-1.5">For Trainers · Remember this</div>
+          <p className="text-[15px] font-bold text-navy leading-snug">
+            &ldquo;#1 quality of a great trainer &ndash; genuine interest in well-being of a trainer&rdquo;
+          </p>
+        </div>
+      )}
 
       {(materialsDone || checkinSent) && (
         <InductionFeedbackCard employeeEmail={employeeEmail} employeeName={employeeName} complete={materialsDone} />
