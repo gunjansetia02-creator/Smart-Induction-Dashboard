@@ -52,11 +52,9 @@ export async function Home({
   const materialsDone = s ? s.materialsComplete === s.materialsTotal && s.materialsTotal > 0 : false
   const openDoubts = s?.openDoubts ?? 0
   const materialsBadgeVariant: 'green' | 'blue' = materialsDone ? 'green' : 'blue'
-  // Every PMS trainer sits in "Training Delivery Inhouse"; the designation
-  // check also catches trainers filed under another department.
-  const isTrainer = Boolean(joiner) && (
-    /training delivery/i.test(joiner?.dept ?? '') || /trainer/i.test(joiner?.designation ?? '')
-  )
+  // Trainer-only content goes to everyone in the PMS "Training Delivery
+  // Inhouse" department, whatever their designation.
+  const isTrainer = (joiner?.dept ?? '').trim().toLowerCase() === 'training delivery inhouse'
 
   const checklist = [
     { label: 'Open your Induction Dashboard',  done: true,  active: false, badge: null },
