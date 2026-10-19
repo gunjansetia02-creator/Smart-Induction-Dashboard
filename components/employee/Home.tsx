@@ -116,7 +116,7 @@ export async function Home({
         <div className="bg-white border border-bdr border-l-[4px] border-l-kamber rounded-[6px] p-[16px_20px] mb-5">
           <div className="text-[10.5px] font-bold text-amber-800 tracking-[0.6px] uppercase mb-1.5">For Trainers · Remember this</div>
           <p className="text-[15px] font-bold text-navy leading-snug">
-            &ldquo;#1 quality of a great trainer &ndash; genuine interest in well-being of a trainer&rdquo;
+            &ldquo;#1 quality of a great trainer &ndash; genuine interest in well-being of the learner or student&rdquo;
           </p>
         </div>
       )}
