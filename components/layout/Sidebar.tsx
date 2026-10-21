@@ -110,6 +110,11 @@ export function Sidebar({
             {isHR ? 'HR Executive' : 'New Joiner'}
           </div>
         </div>
+        {isHR && (
+          <a href="/api/hr-logout" className="ml-auto text-[11px] text-white/50 hover:text-white no-underline" title="Sign out of the HR dashboard">
+            Sign out
+          </a>
+        )}
       </div>
     </aside>
   )
