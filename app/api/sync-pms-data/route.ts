@@ -112,6 +112,9 @@ export async function POST() {
   }
 }
 
+// Status only — this route is public, so it must never return the employee
+// records themselves (personal emails, phones, UAN, PIP status). The full list
+// is served only by /api/pms-employees, which requires PMS_PROXY_SECRET.
 export async function GET() {
   try {
     // Check cache first
@@ -122,7 +125,6 @@ export async function GET() {
         source: 'cache',
         count: cached.employees.length,
         timestamp: new Date(cached.timestamp).toISOString(),
-        employees: cached.employees
       })
     }
     
@@ -136,7 +138,6 @@ export async function GET() {
       source: 'live-pms',
       count: employees.length,
       timestamp: new Date().toISOString(),
-      employees
     })
   } catch (error) {
     console.error('[SYNC] GET request failed:', error)

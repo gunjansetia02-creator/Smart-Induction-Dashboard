@@ -171,7 +171,34 @@ function fetchAllEmployeesShared(): Promise<PMSEmployee[]> {
   return inFlight
 }
 
-export const fetchAllEmployees = unstable_cache(fetchAllEmployeesShared, ['pms-all-employees'], { revalidate: 180 })
+// Always calls PMS itself — used by /api/pms-employees, which must never
+// route back through the proxy below.
+export const fetchAllEmployeesDirect = fetchAllEmployeesShared
+
+// PMS only accepts whitelisted IPs, and a dev machine's broadband IP keeps
+// changing. With PMS_PROXY_URL set (local .env only, never on Vercel), fetch
+// through the deployed dashboard's /api/pms-employees instead.
+const PMS_PROXY_URL    = process.env.PMS_PROXY_URL
+const PMS_PROXY_SECRET = process.env.PMS_PROXY_SECRET
+
+async function fetchAllEmployeesViaProxy(): Promise<PMSEmployee[]> {
+  if (!PMS_PROXY_SECRET) throw new Error('PMS_PROXY_URL is set but PMS_PROXY_SECRET is missing')
+  console.log(`[PMS] Fetching employees via proxy ${PMS_PROXY_URL}...`)
+  const res = await fetch(`${PMS_PROXY_URL!.replace(/\/$/, '')}/api/pms-employees`, {
+    headers: { Authorization: `Bearer ${PMS_PROXY_SECRET}` },
+    cache: 'no-store',
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(`PMS proxy error ${res.status}: ${data.error ?? 'unknown'}`)
+  console.log(`[PMS] Fetched ${data.employees.length} employees via proxy`)
+  return data.employees as PMSEmployee[]
+}
+
+export const fetchAllEmployees = unstable_cache(
+  PMS_PROXY_URL ? fetchAllEmployeesViaProxy : fetchAllEmployeesShared,
+  ['pms-all-employees'],
+  { revalidate: 180 },
+)
 
 // Parse DOJ from Indian format DD/MM/YYYY, DD-MM-YYYY, or ISO YYYY-MM-DD
 export function parseDOJ(doj: string | null): Date | null {
