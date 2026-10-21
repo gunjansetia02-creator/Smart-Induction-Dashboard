@@ -114,32 +114,47 @@ async function fetchAllEmployeesLive(): Promise<PMSEmployee[]> {
       return employees
     }
     
-    const { accessToken, deviceToken } = await getTokens()
+    // PMS keeps only one live token per account: a second GetToken (another
+    // page load running at the same moment) revokes the first, whose employee
+    // fetch then comes back "Forbidden : Permission denied". So on that error,
+    // log in again after a short random wait and retry instead of giving up.
+    const maxAttempts = 4
+    for (let attempt = 1; ; attempt++) {
+      const { accessToken, deviceToken } = await getTokens()
 
-    const url = `${PMS_BASE}/api/Kites/Operator/common?apikey=${PMS_API_KEY}&accessToken=${encodeURIComponent(accessToken)}&deviceToken=${encodeURIComponent(deviceToken)}`
+      const url = `${PMS_BASE}/api/Kites/Operator/common?apikey=${PMS_API_KEY}&accessToken=${encodeURIComponent(accessToken)}&deviceToken=${encodeURIComponent(deviceToken)}`
 
-    const res = await fetch(url, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        EmpCode:       '',
-        PIPStatus:     '',
-        SearchName:    '',
-        SearchLinkedIn:'',
-        SearchPhone:   '',
-      }),
-    })
+      const res = await fetch(url, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          EmpCode:       '',
+          PIPStatus:     '',
+          SearchName:    '',
+          SearchLinkedIn:'',
+          SearchPhone:   '',
+        }),
+      })
 
-    if (!res.ok) throw new Error(`PMS employee fetch failed: ${res.status}`)
+      if (!res.ok) throw new Error(`PMS employee fetch failed: ${res.status}`)
 
-    const data = await res.json()
-    if (data.statuscode !== 200) throw new Error(`PMS employee error: ${data.message}`)
+      const data = await res.json()
+      if (data.statuscode !== 200) {
+        const revoked = /forbidden|permission denied/i.test(String(data.message))
+        if (revoked && attempt < maxAttempts) {
+          console.warn(`[PMS] Token revoked mid-fetch (attempt ${attempt}/${maxAttempts}) — retrying with a fresh token`)
+          await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 1200))
+          continue
+        }
+        throw new Error(`PMS employee error: ${data.message}`)
+      }
 
-    // PMS returns content as a JSON string, not a parsed array
-    const raw = data.content ?? '[]'
-    const employees: PMSEmployee[] = typeof raw === 'string' ? JSON.parse(raw) : raw
-    console.log(`[PMS] Fetched ${employees.length} employees successfully`)
-    return employees
+      // PMS returns content as a JSON string, not a parsed array
+      const raw = data.content ?? '[]'
+      const employees: PMSEmployee[] = typeof raw === 'string' ? JSON.parse(raw) : raw
+      console.log(`[PMS] Fetched ${employees.length} employees successfully`)
+      return employees
+    }
   } catch (error) {
     console.error('[PMS] Error fetching employees:', error instanceof Error ? error.message : String(error))
     throw error
@@ -148,7 +163,15 @@ async function fetchAllEmployeesLive(): Promise<PMSEmployee[]> {
 
 // The PMS round trip (token + ~600-employee fetch) is slow and identical for every visitor,
 // so cache it for a few minutes instead of re-fetching on every single page navigation.
-export const fetchAllEmployees = unstable_cache(fetchAllEmployeesLive, ['pms-all-employees'], { revalidate: 180 })
+// Simultaneous cache misses on one server instance share a single in-flight
+// fetch, so they don't each log in and revoke one another's PMS token.
+let inFlight: Promise<PMSEmployee[]> | null = null
+function fetchAllEmployeesShared(): Promise<PMSEmployee[]> {
+  inFlight ??= fetchAllEmployeesLive().finally(() => { inFlight = null })
+  return inFlight
+}
+
+export const fetchAllEmployees = unstable_cache(fetchAllEmployeesShared, ['pms-all-employees'], { revalidate: 180 })
 
 // Parse DOJ from Indian format DD/MM/YYYY, DD-MM-YYYY, or ISO YYYY-MM-DD
 export function parseDOJ(doj: string | null): Date | null {
