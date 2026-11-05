@@ -8,6 +8,13 @@ interface QuizQuestion {
   options: string[]
 }
 
+// Options in display order, each remembering its position in the stored
+// question — answers go back as that original index, so grading by
+// correct_index is unaffected by the shuffle.
+interface ShuffledQuestion extends QuizQuestion {
+  choices: { text: string; orig: number }[]
+}
+
 interface AttemptResult {
   score: number
   total: number
@@ -39,7 +46,7 @@ export function QuizModal({
   onClose: () => void
   onPassed: () => void
 }) {
-  const [questions, setQuestions] = useState<QuizQuestion[] | null>(null)
+  const [questions, setQuestions] = useState<ShuffledQuestion[] | null>(null)
   const [answers, setAnswers] = useState<Record<string, number>>({})
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<AttemptResult | null>(null)
@@ -49,8 +56,12 @@ export function QuizModal({
       .then(r => r.json())
       // Shuffled once per attempt — the question pool is the same for every
       // new joiner, but the order (and so the numbering) differs per person,
-      // making it useless to just share "answer #3 is B".
-      .then(d => setQuestions(shuffle(d.questions ?? [])))
+      // making it useless to just share "answer #3 is B". Options are shuffled
+      // too, so the right answer isn't always in the same position.
+      .then(d => setQuestions(shuffle<QuizQuestion>(d.questions ?? []).map(q => ({
+        ...q,
+        choices: shuffle(q.options.map((text, orig) => ({ text, orig }))),
+      }))))
       .catch(() => setQuestions([]))
   }, [materialId])
 
@@ -114,15 +125,15 @@ export function QuizModal({
                 <div key={q.id}>
                   <div className="text-[13px] font-semibold text-navy mb-1.5">{i + 1}. {q.question}</div>
                   <div className="flex flex-col gap-1.5">
-                    {q.options.map((opt, oi) => (
-                      <label key={oi} className={`flex items-center gap-2 px-2.5 py-1.5 rounded border text-[12.5px] cursor-pointer ${answers[q.id] === oi ? 'border-sky bg-sky-dim' : 'border-bdr hover:bg-ground'}`}>
+                    {q.choices.map(({ text, orig }) => (
+                      <label key={orig} className={`flex items-center gap-2 px-2.5 py-1.5 rounded border text-[12.5px] cursor-pointer ${answers[q.id] === orig ? 'border-sky bg-sky-dim' : 'border-bdr hover:bg-ground'}`}>
                         <input
                           type="radio"
                           name={q.id}
-                          checked={answers[q.id] === oi}
-                          onChange={() => setAnswers(a => ({ ...a, [q.id]: oi }))}
+                          checked={answers[q.id] === orig}
+                          onChange={() => setAnswers(a => ({ ...a, [q.id]: orig }))}
                         />
-                        {opt}
+                        {text}
                       </label>
                     ))}
                   </div>
