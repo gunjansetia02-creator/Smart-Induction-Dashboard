@@ -15,6 +15,7 @@ function needsHr(req: NextRequest): boolean {
   if (p === '/api/joiners/send-welcome-kit')         return true
   if (p === '/api/joiners/status')                   return true
   if (p === '/api/sync-pms-data')                    return true
+  if (p === '/api/reminders')                        return true
   if (p === '/api/materials/upload')                 return true
   if (p.startsWith('/api/materials/quiz/'))          return true
   if (p === '/api/materials/questions/stats')        return true

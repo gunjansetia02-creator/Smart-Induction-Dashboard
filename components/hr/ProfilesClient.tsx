@@ -7,6 +7,7 @@ import { PmsSyncStatus } from './PmsSyncStatus'
 import { DateRangeFilter, type DateRange } from './DateRangeFilter'
 import { WelcomeKitButton } from './WelcomeKitButton'
 import { JoinerDetailModal } from './JoinerDetailModal'
+import { RemindersPanel } from './RemindersPanel'
 import type { Joiner, JoinerStatus } from '@/lib/types'
 import type { JoinerStatusEntry } from '@/app/api/joiners/status/route'
 
@@ -53,6 +54,9 @@ function StatusChips({ s }: { s: JoinerStatusEntry | undefined }) {
       <span className={`text-[9.5px] font-semibold px-1.5 py-[2px] rounded ${s.openDoubts > 0 ? 'bg-kamber-dim text-amber-800' : 'bg-ground text-faint'}`}>
         💬 {s.openDoubts > 0 ? `${s.openDoubts} Open` : 'No Doubts'}
       </span>
+      {s.remindersSent > 0 && !s.inductionComplete && (
+        <span className="text-[9.5px] font-semibold px-1.5 py-[2px] rounded bg-kamber-dim text-amber-800">🔔 Reminded {s.remindersSent}×</span>
+      )}
       {s.inductionComplete && (
         <span className="text-[9.5px] font-semibold px-1.5 py-[2px] rounded bg-kgreen-dim text-emerald-700">🎉 Done</span>
       )}
@@ -108,6 +112,8 @@ export function ProfilesClient({
   return (
     <div>
       <PmsSyncStatus live={live} error={error} />
+
+      {live && <RemindersPanel />}
 
       <DateRangeFilter initialPreset="30d" onChange={(r, label) => { setRange(r); setRangeLabel(label) }} />
 

@@ -10,6 +10,7 @@ export interface JoinerStatusEntry {
   meetingInviteSent: boolean
   loggedIn: boolean
   inductionComplete: boolean
+  remindersSent: number
 }
 
 export interface JoinerRef {
@@ -38,11 +39,12 @@ export async function getJoinerStatuses(joiners: JoinerRef[]): Promise<Record<st
   // silently (the client here doesn't check `error`), which was returning empty
   // results for every joiner. These tables only ever hold one row per joiner
   // interaction, so an unfiltered select stays small.
-  const [{ data: materials, error: materialsErr }, { data: progress, error: progressErr }, { data: questions, error: questionsErr }, { data: comms, error: commsErr }] = await Promise.all([
+  const [{ data: materials, error: materialsErr }, { data: progress, error: progressErr }, { data: questions, error: questionsErr }, { data: comms, error: commsErr }, { data: reminders }] = await Promise.all([
     supabase.from('materials').select('id, required_department'),
     supabase.from('material_progress').select('employee_email, material_id, status'),
     supabase.from('material_questions').select('employee_email, resolved'),
     supabase.from('joiner_communications').select('*'),
+    supabase.from('completion_reminders').select('employee_email'),
   ])
 
   if (materialsErr) console.error('[getJoinerStatuses] materials error:', materialsErr.message)
@@ -74,6 +76,7 @@ export async function getJoinerStatuses(joiners: JoinerRef[]): Promise<Record<st
       meetingInviteSent: Boolean(myComms?.meeting_invite_sent_at),
       loggedIn: Boolean(myComms?.first_login_at),
       inductionComplete: total > 0 && materialsComplete === total && openDoubts === 0,
+      remindersSent: (reminders ?? []).filter(r => r.employee_email.toLowerCase() === email.toLowerCase()).length,
     }
   }
 

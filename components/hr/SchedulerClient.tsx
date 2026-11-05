@@ -19,7 +19,7 @@ async function sendTo(joiners: { name: string; email: string; department?: strin
 const EMPTY_STATUS: JoinerStatusEntry = {
   materialsTotal: 0, materialsComplete: 0, materialsPercent: 0,
   openDoubts: 0, totalDoubts: 0, welcomeEmailSent: false, meetingInviteSent: false,
-  loggedIn: false, inductionComplete: false,
+  loggedIn: false, inductionComplete: false, remindersSent: 0,
 }
 
 export function SchedulerClient({
