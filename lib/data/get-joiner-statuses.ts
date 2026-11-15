@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { countsForJoiner } from './material-applicability'
 
 export interface JoinerStatusEntry {
   materialsTotal: number
@@ -20,11 +21,6 @@ export interface JoinerRef {
   dept?: string | null
 }
 
-function isApplicable(requiredDept: string | null, joinerDept: string | null | undefined): boolean {
-  if (!requiredDept) return true
-  return (joinerDept ?? '').trim().toLowerCase() === requiredDept.trim().toLowerCase()
-}
-
 // Real, Supabase-backed induction status per joiner — the single source of truth
 // for "how far along is this person," used by both the HR API route and any
 // server component that needs it (Overview, Profiles). Never derive this from
@@ -40,7 +36,7 @@ export async function getJoinerStatuses(joiners: JoinerRef[]): Promise<Record<st
   // results for every joiner. These tables only ever hold one row per joiner
   // interaction, so an unfiltered select stays small.
   const [{ data: materials, error: materialsErr }, { data: progress, error: progressErr }, { data: questions, error: questionsErr }, { data: comms, error: commsErr }, { data: reminders }] = await Promise.all([
-    supabase.from('materials').select('id, required_department'),
+    supabase.from('materials').select('id, required_department, created_at'),
     supabase.from('material_progress').select('employee_email, material_id, status'),
     supabase.from('material_questions').select('employee_email, resolved'),
     supabase.from('joiner_communications').select('*'),
@@ -56,12 +52,12 @@ export async function getJoinerStatuses(joiners: JoinerRef[]): Promise<Record<st
   const statuses: Record<string, JoinerStatusEntry> = {}
 
   for (const { email, dept } of clean) {
-    const applicableIds = new Set(allMaterials.filter(m => isApplicable(m.required_department, dept)).map(m => m.id))
+    const myComms = (comms ?? []).find(c => c.employee_email === email)
+    const applicableIds = new Set(allMaterials.filter(m => countsForJoiner(m, dept, myComms?.materials_complete_at)).map(m => m.id))
     const total = applicableIds.size
 
     const myProgress = (progress ?? []).filter(p => p.employee_email === email && applicableIds.has(p.material_id))
     const myQuestions = (questions ?? []).filter(q => q.employee_email === email)
-    const myComms = (comms ?? []).find(c => c.employee_email === email)
 
     const materialsComplete = myProgress.filter(p => p.status === 'complete').length
     const openDoubts = myQuestions.filter(q => !q.resolved).length

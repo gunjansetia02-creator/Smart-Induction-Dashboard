@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { MaterialsListClient, type EmployeeMaterial } from './MaterialsListClient'
 import type { Joiner } from '@/lib/types'
+import { inDepartment, addedAfterCompletion } from '@/lib/data/material-applicability'
 
 // Fallback identity for HR's "Employee View" preview toggle, which has no
 // real joiner behind it — real joiners are identified via ?email= on their
@@ -31,8 +32,10 @@ export async function Materials({
   // Department-restricted materials (e.g. a Sales-only deck) only show up
   // for employees in that exact PMS department — everyone else never even
   // sees the row, so it can't count against their completion either.
-  const myDept = (joiner?.dept ?? '').trim().toLowerCase()
-  const materials = allMaterials.filter(m => !m.required_department || m.required_department.trim().toLowerCase() === myDept)
+  const materials = allMaterials.filter(m => inDepartment(m, joiner?.dept))
+  // Added after this joiner had already finished everything: still shown,
+  // marked optional, and never counted against their completion.
+  const { data: comms } = await supabase.from('joiner_communications').select('materials_complete_at').eq('employee_email', employeeEmail).maybeSingle()
 
   if (materials.length === 0) {
     return (
@@ -72,6 +75,7 @@ export async function Materials({
     watchedPercent: progressByMaterial.get(m.id)?.watched_percent ?? 0,
     lastPosition: progressByMaterial.get(m.id)?.last_position_seconds ?? 0,
     quizCount: quizCountByMaterial.get(m.id) ?? 0,
+    optional: addedAfterCompletion(m, comms?.materials_complete_at),
     questions: (questionsByMaterial.get(m.id) ?? []).map(q => ({
       id: q.id,
       question: q.question,

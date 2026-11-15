@@ -32,6 +32,8 @@ export interface EmployeeMaterial {
   watchedPercent: number
   lastPosition: number
   quizCount: number
+  // Added after this joiner finished their induction — viewable, not counted.
+  optional?: boolean
   questions: EmployeeQuestion[]
 }
 
@@ -192,7 +194,8 @@ function MaterialRow({
           <div className="flex items-center gap-[9px] text-[11.5px] text-muted mt-1 flex-wrap">
             <span>{material.type === 'pdf' ? 'PDF' : 'Video'}{material.duration ? ` · ${material.duration}` : ''}</span>
             {statusPill(material)}
-            {hasQuiz && material.status !== 'complete' && <span className="text-sky">📝 Quiz required to complete</span>}
+            {material.optional && <span className="text-[10.5px] font-semibold px-1.5 py-[1px] rounded bg-ground text-muted">Optional · added after you completed</span>}
+            {hasQuiz && material.status !== 'complete' && !material.optional && <span className="text-sky">📝 Quiz required to complete</span>}
             {openQuestions.length > 0 && <span className="text-kamber">{openQuestions.length} awaiting answer</span>}
           </div>
           <div className="mt-1.5 max-w-[280px]">
@@ -355,8 +358,9 @@ export function MaterialsListClient({
     setItems(prev => prev.map(m => (m.id === id ? { ...m, ...patch } : m)))
   }
 
-  const total = items.length
-  const completeCount = items.filter(m => m.status === 'complete').length
+  const counted = items.filter(m => !m.optional)
+  const total = counted.length
+  const completeCount = counted.filter(m => m.status === 'complete').length
   const overallPercent = total > 0 ? Math.round((completeCount / total) * 100) : 0
   const continueItem = useMemo(
     () => items.find(m => m.status === 'in-progress' || m.status === 'has-doubt'),

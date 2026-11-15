@@ -2,6 +2,7 @@ import { graphPost } from './graph-client'
 import { fetchAllEmployees, parseDOJ, businessDaysBetween } from './pms-client'
 import { isIndiaBasedLocation } from './india-location'
 import { getJoinerStatuses } from '@/lib/data/get-joiner-statuses'
+import { countsForJoiner } from '@/lib/data/material-applicability'
 import { supabase } from '@/lib/supabase'
 
 const HR_EMAIL      = process.env.HR_EMAIL      ?? 'Gunjan.setia@koenig-solutions.com'
@@ -90,15 +91,15 @@ export async function planReminders(now = new Date()): Promise<ReminderCandidate
 }
 
 async function pendingMaterialTitles(email: string, dept: string | null): Promise<string[]> {
-  const [{ data: materials }, { data: progress }] = await Promise.all([
-    supabase.from('materials').select('id, title, required_department, day, sort_order')
+  const [{ data: materials }, { data: progress }, { data: comms }] = await Promise.all([
+    supabase.from('materials').select('id, title, required_department, created_at, day, sort_order')
       .order('day', { ascending: true, nullsFirst: false }).order('sort_order', { ascending: true, nullsFirst: false }),
     supabase.from('material_progress').select('material_id, status').eq('employee_email', email),
+    supabase.from('joiner_communications').select('materials_complete_at').eq('employee_email', email).maybeSingle(),
   ])
   const done = new Set((progress ?? []).filter(p => p.status === 'complete').map(p => p.material_id))
-  const myDept = (dept ?? '').trim().toLowerCase()
   return (materials ?? [])
-    .filter(m => !m.required_department || m.required_department.trim().toLowerCase() === myDept)
+    .filter(m => countsForJoiner(m, dept, comms?.materials_complete_at))
     .filter(m => !done.has(m.id))
     .map(m => m.title)
 }
