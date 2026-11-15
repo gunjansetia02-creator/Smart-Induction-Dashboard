@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { answerMaterialQuestion, aiConfigured } from '@/lib/ai-answer'
 import { lookupGlossaryAnswer } from '@/lib/glossary-lookup'
+import { lookupCeoWordAnswer } from '@/lib/ceo-words'
 import { notifyHRNewDoubt, notifyHRAiAnswered } from '@/lib/automation/doubt-email'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // document's own glossary, if it has one — deterministic, instant, and
   // works even when no AI is configured at all, which is the common case
   // for acronym lookups like "what is PIR?".
-  aiAnswer = lookupGlossaryAnswer(body.question, material.content_text)
+  aiAnswer = lookupGlossaryAnswer(body.question, material.content_text) ?? lookupCeoWordAnswer(body.question)
 
   if (!aiAnswer && aiConfigured()) {
     try {

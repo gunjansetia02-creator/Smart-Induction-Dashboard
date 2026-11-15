@@ -7,6 +7,8 @@ import { ProgressRing } from '@/components/ui/ProgressRing'
 import { VideoPlayer } from './VideoPlayer'
 import { QuizModal } from './QuizModal'
 import { detectVideoSource } from '@/lib/video-embed'
+import { CeoWordCard } from './CeoWordCard'
+import { ceoWord, DAY_BANNER_WORDS } from '@/lib/ceo-words'
 
 export interface EmployeeQuestion {
   id: string
@@ -464,6 +466,11 @@ export function MaterialsListClient({
         Array.from(grouped.entries()).map(([groupLabel, groupItems]) => (
           <div key={groupLabel} className="mb-5">
             <div className="text-[11px] font-bold tracking-[0.6px] uppercase text-faint mb-2">{groupLabel}</div>
+            {DAY_BANNER_WORDS[groupLabel] && (
+              <div className="mb-3">
+                <CeoWordCard word={ceoWord(DAY_BANNER_WORDS[groupLabel])} compact />
+              </div>
+            )}
             <div className="flex flex-col gap-3">
               {subgroupBySubject(groupItems).map(sg => (
                 <div key={sg.key} className="bg-white border border-bdr rounded-[5px] overflow-hidden">

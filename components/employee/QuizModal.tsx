@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { ceoWord } from '@/lib/ceo-words'
 
 interface QuizQuestion {
   id: string
@@ -113,6 +114,12 @@ export function QuizModal({
               <div className="text-[13px] text-navy font-semibold mt-1">
                 {result.passed ? '🎉 Passed — material marked complete!' : `Below ${Math.round(result.threshold * 100)}% — review the material and try again.`}
               </div>
+              {/* Our CEO's words for the moment: pass → keep the idea alive;
+                  fail → a failure is a "scold" that helps you improve. */}
+              <p className="text-[12px] text-muted italic mt-3 max-w-[400px] mx-auto">
+                &ldquo;{ceoWord(result.passed ? 'act' : 'scold').quote}&rdquo;
+                <span className="not-italic text-faint"> — our CEO</span>
+              </p>
               {!result.passed && (
                 <button onClick={retry} className="mt-4 px-[14px] py-[8px] text-[12.5px] font-semibold bg-sky text-white rounded cursor-pointer hover:opacity-85">
                   Retake Quiz

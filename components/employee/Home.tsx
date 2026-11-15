@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase'
 import type { Joiner } from '@/lib/types'
 import { DEMO_EMPLOYEE_EMAIL, DEMO_EMPLOYEE_NAME } from './Materials'
 import { InductionFeedbackCard } from './InductionFeedbackCard'
+import { CeoWordCard } from './CeoWordCard'
+import { wordOfTheDay } from '@/lib/ceo-words'
 
 const AVATAR_COLORS = ['#4A9BE8', '#27B882', '#F4A622', '#E85A4A', '#1B2D50', '#6B7A99']
 
@@ -55,6 +57,11 @@ export async function Home({
   // Trainer-only content goes to everyone in the PMS "Training Delivery
   // Inhouse" department, whatever their designation.
   const isTrainer = (joiner?.dept ?? '').trim().toLowerCase() === 'training delivery inhouse'
+  // Days since joining (0 on DOJ) — picks today's CEO word, so each visit
+  // during induction shows the next one. No DOJ (HR preview): day of year.
+  const inductionDay = joiner?.doj
+    ? Math.max(0, Math.floor((Date.now() - new Date(joiner.doj).getTime()) / 86_400_000))
+    : Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86_400_000)
 
   const checklist = [
     { label: 'Open your Induction Dashboard',  done: true,  active: false, badge: null },
@@ -120,6 +127,10 @@ export async function Home({
           </p>
         </div>
       )}
+
+      <div className="mb-5">
+        <CeoWordCard word={wordOfTheDay(inductionDay, joiner?.dept)} label={joiner?.doj ? `In our CEO’s words · Day ${inductionDay + 1}` : 'In our CEO’s words'} />
+      </div>
 
       {(materialsDone || checkinSent) && (
         <InductionFeedbackCard employeeEmail={employeeEmail} employeeName={employeeName} complete={materialsDone} />

@@ -1,3 +1,5 @@
+import { ceoWordsForAi } from './ceo-words'
+
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
 const ANTHROPIC_MODEL = 'claude-sonnet-5'
 
@@ -33,9 +35,14 @@ export async function answerMaterialQuestion(opts: {
         .join('\n')}`
     : ''
 
+  // Our CEO's vocabulary is always available as a second source, so terms
+  // like RISE, Koenig-ism or KBC are explained the way he explains them, and
+  // answers connect to his priorities where it genuinely fits.
+  const ceoBlock = `\n\nYou may also use our CEO's words below. When the question touches one of these ideas, answer in that language and you may quote him briefly; never force a quote where it doesn't fit.\n${ceoWordsForAi()}`
+
   const system = hasFullContent
-    ? `You are the induction assistant for new employees at Koenig Solutions. An employee asked a question about one of their induction materials. Answer helpfully and concisely (2-4 sentences) using ONLY the full document content provided below — it is the actual text of the material. If the answer genuinely isn't in the document, say so plainly and suggest they escalate the question to HR — do not make up specifics that aren't there.${verifiedBlock}`
-    : `You are the induction assistant for new employees at Koenig Solutions. An employee is going through their onboarding material and asked a question about it. Answer helpfully and concisely (2-4 sentences) using only the material's title and description as context. If the material's description doesn't contain enough information to answer confidently, say so plainly and suggest they escalate the question to HR — do not make up specifics you don't know.${verifiedBlock}`
+    ? `You are the induction assistant for new employees at Koenig Solutions. An employee asked a question about one of their induction materials. Answer helpfully and concisely (2-4 sentences) using ONLY the full document content provided below — it is the actual text of the material — and our CEO's words listed at the end. If the answer genuinely isn't in either, say so plainly and suggest they escalate the question to HR — do not make up specifics that aren't there.${verifiedBlock}${ceoBlock}`
+    : `You are the induction assistant for new employees at Koenig Solutions. An employee is going through their onboarding material and asked a question about it. Answer helpfully and concisely (2-4 sentences) using only the material's title and description, and our CEO's words listed at the end. If that doesn't contain enough information to answer confidently, say so plainly and suggest they escalate the question to HR — do not make up specifics you don't know.${verifiedBlock}${ceoBlock}`
 
   const userMessage = hasFullContent
     ? `Material: "${opts.materialTitle}" (${opts.materialType})

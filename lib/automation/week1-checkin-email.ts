@@ -1,4 +1,5 @@
 import { graphPost } from './graph-client'
+import { ceoWordEmailHtml } from '@/lib/ceo-words'
 
 const HR_EMAIL    = process.env.HR_EMAIL    ?? 'Gunjan.setia@koenig-solutions.com'
 const DASHBOARD_URL = process.env.DASHBOARD_URL ?? 'https://induction-dashboard.vercel.app'
@@ -52,12 +53,13 @@ export async function sendWeek1CheckinEmail(joiner: { name: string; email: strin
               box waiting for you on your dashboard home screen. Takes less than a minute, and it directly
               shapes how we run induction for the next person who joins.
             </p>
+            ${ceoWordEmailHtml('energy')}
 
             <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:8px auto 8px;">
               <tr>
                 <td class="cta-td" bgcolor="#1B2D50" style="background-color:#1B2D50;border-radius:8px;mso-padding-alt:14px 32px;">
                   <a href="${dashboardLink}" target="_blank"
-                     style="display:inline-block;padding:14px 32px;font-family:'Segoe UI',Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.3px;">
+                     style="display:block;padding:14px 32px;font-family:'Segoe UI',Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.3px;">
                     <span style="color:#ffffff !important;">Continue My Materials & Share Feedback →</span>
                   </a>
                 </td>

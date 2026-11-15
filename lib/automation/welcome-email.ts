@@ -1,4 +1,5 @@
 import { graphPost } from './graph-client'
+import { ceoWordEmailHtml } from '@/lib/ceo-words'
 
 const HR_EMAIL     = process.env.HR_EMAIL     ?? 'Gunjan.setia@koenig-solutions.com'
 const DASHBOARD_URL = process.env.DASHBOARD_URL ?? 'https://induction-dashboard.vercel.app'
@@ -117,6 +118,7 @@ function buildEmailHtml(name: string, email: string): string {
                 </td>
               </tr>
             </table>
+            ${ceoWordEmailHtml('koenigism')}
 
             <!-- CTA (table-based "bulletproof" button — a plain styled <a> with
                  display:inline-block can silently lose its href/background in
@@ -125,7 +127,7 @@ function buildEmailHtml(name: string, email: string): string {
               <tr>
                 <td class="cta-td" bgcolor="#1B2D50" style="background-color:#1B2D50;border-radius:8px;mso-padding-alt:14px 36px;">
                   <a href="${dashboardLink}" target="_blank"
-                     style="display:inline-block;padding:14px 36px;font-family:'Segoe UI',Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.3px;">
+                     style="display:block;padding:14px 36px;font-family:'Segoe UI',Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.3px;">
                     <span style="color:#ffffff !important;">Open Your Induction Dashboard →</span>
                   </a>
                 </td>

@@ -3,6 +3,10 @@ import { fetchAllEmployees, parseDOJ, businessDaysBetween } from './pms-client'
 import { isIndiaBasedLocation } from './india-location'
 import { getJoinerStatuses } from '@/lib/data/get-joiner-statuses'
 import { countsForJoiner } from '@/lib/data/material-applicability'
+import { ceoWordEmailHtml } from '@/lib/ceo-words'
+
+// Our CEO's line for reminder 1, 2, 3 (final).
+const REMINDER_CEO_WORDS = ['act', 'create-work', 'dependable']
 import { supabase } from '@/lib/supabase'
 
 const HR_EMAIL      = process.env.HR_EMAIL      ?? 'Gunjan.setia@koenig-solutions.com'
@@ -153,6 +157,7 @@ export async function sendCompletionReminder(
         <p style="margin:0 0 24px;font-size:14px;color:#374151;line-height:1.7;">
           Each material has a short quiz at the end. If anything is unclear, ask your doubt right there on the dashboard and it'll come straight to me.
         </p>
+        ${ceoWordEmailHtml(REMINDER_CEO_WORDS[Math.min(reminderNo, REMINDER_CEO_WORDS.length) - 1])}
         <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:8px auto;"><tr>
           <td class="cta-td" bgcolor="#1B2D50" style="background-color:#1B2D50;border-radius:8px;mso-padding-alt:14px 32px;">
             <a href="${link}" target="_blank" style="display:block;padding:14px 32px;font-family:'Segoe UI',Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">

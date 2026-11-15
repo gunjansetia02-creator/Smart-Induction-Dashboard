@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { getCeoMessage, CEO_MESSAGES } from '@/lib/ceo-messages'
+import { CEO_WORDS } from '@/lib/ceo-words'
 
 export function generateStaticParams() {
   return CEO_MESSAGES.map(m => ({ slug: m.slug }))
@@ -48,6 +49,23 @@ export default async function CeoMessagePage({ params }: { params: Promise<{ slu
             </section>
           ))}
         </div>
+
+        <section id="words" className="mx-6 sm:mx-8 mb-6 pt-5 border-t border-bdr scroll-mt-4">
+          <h2 className="text-[16px] font-bold text-navy mb-1">Our CEO&rsquo;s words</h2>
+          <p className="text-[13px] text-muted mb-3">The phrases you&rsquo;ll hear across Koenig, what they mean, and how our CEO puts it.</p>
+          <div className="flex flex-col gap-2.5">
+            {CEO_WORDS.map(w => (
+              <div key={w.id} className="border border-bdr rounded-[6px] px-4 py-3">
+                <div className="text-[14px] font-bold text-navy">
+                  {w.phrase}
+                  {w.audience === 'sales' && <span className="ml-2 align-middle text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-dim text-blue-700">Sales</span>}
+                </div>
+                <p className="text-[13px] text-[#374151] mt-0.5">{w.meaning}</p>
+                <p className="text-[13px] text-navy italic mt-1">&ldquo;{w.quote}&rdquo;</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <footer className="mx-6 sm:mx-8 mb-7 px-5 py-4 rounded-[8px] bg-kamber-dim border-l-[4px] border-kamber">
           <p className="text-[15px] font-bold text-navy">{m.closing}</p>
