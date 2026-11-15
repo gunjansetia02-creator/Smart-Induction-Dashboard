@@ -15,6 +15,20 @@ export interface CeoWord {
 
 export const CEO_WORDS_SOURCE = 'Quarterly Kites Meet, 23 Oct 2026'
 
+// Koenig-ism in practice — the 8 principles on the Onboarding Presentation's
+// Koenig-ism slide (slide 6, Nov 2026 deck). Keep this list and that slide
+// in step.
+export const KOENIGISM_PRINCIPLES = [
+  'Try AI first, then do it yourself.',
+  'Automate any task you repeat.',
+  'Leave every process better than you found it.',
+  'Tell the truth to customers, colleagues and yourself.',
+  'Check what AI produces before you send it.',
+  'Judge your work by results, not effort.',
+  'Reply today, not tomorrow.',
+  'Bring energy to every interaction.',
+]
+
 export const CEO_WORDS: CeoWord[] = [
   {
     id: 'experiment',
@@ -109,7 +123,7 @@ export const CEO_WORDS: CeoWord[] = [
   {
     id: 'koenigism',
     phrase: 'Koenig-ism',
-    meaning: 'Our culture: Faith in AI, constant improvement, energy, and being truthful (Koenig Ethos).',
+    meaning: 'Our culture — what every Kite believes in: faith in AI, constant improvement, energy and being truthful. Lived through 8 principles.',
     quote: 'If I believe in AI, I will survive and thrive. If I constantly improve, if I have energy, if I’m honest — I will survive and thrive.',
   },
   {
@@ -220,7 +234,8 @@ export function lookupCeoWordAnswer(question: string): string | null {
   for (const [id, re] of Object.entries(LOOKUP_KEYS)) {
     if (re.test(question)) {
       const w = ceoWord(id)
-      return `${w.phrase}: ${w.meaning}\n\nIn our CEO's words: “${w.quote}”`
+      const principles = id === 'koenigism' ? `\n\n${KOENIGISM_PRINCIPLES.map((p, i) => `${i + 1}. ${p}`).join('\n')}` : ''
+      return `${w.phrase}: ${w.meaning}${principles}\n\nIn our CEO's words: “${w.quote}”`
     }
   }
   return null
@@ -244,5 +259,6 @@ export function ceoWordsForAi(): string {
   return [
     `OUR CEO'S WORDS AND PRIORITIES (${CEO_WORDS_SOURCE}) — use these terms and explanations when relevant:`,
     ...CEO_WORDS.map(w => `- ${w.phrase}: ${w.meaning} Our CEO: "${w.quote}"`),
+    `KOENIG-ISM — THE 8 PRINCIPLES:\n${KOENIGISM_PRINCIPLES.map((p, i) => `${i + 1}. ${p}`).join('\n')}`,
   ].join('\n')
 }

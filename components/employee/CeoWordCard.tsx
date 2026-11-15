@@ -1,5 +1,5 @@
 import type { CeoWord } from '@/lib/ceo-words'
-import { CEO_WORDS_SOURCE } from '@/lib/ceo-words'
+import { CEO_WORDS_SOURCE, KOENIGISM_PRINCIPLES } from '@/lib/ceo-words'
 
 // "In our CEO's words" — one of our CEO's phrases with what it means and his
 // actual line. Used on Home (word of the day) and above each materials day.
@@ -16,6 +16,11 @@ export function CeoWordCard({ word, label = 'In our CEO’s words', compact = fa
       </div>
       <div className={`${compact ? 'text-[13.5px]' : 'text-[15px]'} font-bold text-navy`}>{word.phrase}</div>
       <p className={`${compact ? 'text-[12px]' : 'text-[13px]'} text-muted mt-0.5`}>{word.meaning}</p>
+      {word.id === 'koenigism' && (
+        <ol className={`grid sm:grid-cols-2 gap-x-6 gap-y-0.5 mt-1.5 pl-5 list-decimal ${compact ? 'text-[12px]' : 'text-[13px]'} text-navy font-medium`}>
+          {KOENIGISM_PRINCIPLES.map(p => <li key={p}>{p}</li>)}
+        </ol>
+      )}
       <p className={`${compact ? 'text-[12px]' : 'text-[13px]'} text-navy italic mt-1.5`}>
         &ldquo;{word.quote}&rdquo; <span className="not-italic text-faint text-[11px]">— our CEO, {CEO_WORDS_SOURCE}</span>
       </p>

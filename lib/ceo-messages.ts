@@ -3,6 +3,8 @@
 // and its saved recap. Internal numbers (NR, attrition, ratings) are left out
 // on purpose — this is culture and direction, not a results review.
 
+import { KOENIGISM_PRINCIPLES } from './ceo-words'
+
 export interface CeoMessageSection {
   heading: string
   intro?: string
@@ -66,7 +68,8 @@ export const CEO_MESSAGES: CeoMessage[] = [
       },
       {
         heading: 'Koenig-ism: our culture',
-        points: ['Faith in AI', 'Constant improvement', 'Energy', 'Koenig Ethos — being truthful'],
+        intro: 'What every Kite believes in: faith in AI, constant improvement, energy, and Koenig Ethos — being truthful. In practice, that means 8 principles:',
+        points: KOENIGISM_PRINCIPLES.map((p, i) => `${i + 1}. ${p}`),
       },
       {
         heading: 'Our priorities',
